@@ -1,9 +1,8 @@
 TEMPLATE = app
 TARGET = btserverqt
 
-QT = core
-#CONFIG    += console
-#include(../../src/qtsinglecoreapplication.pri)
+QT = core widgets
+CONFIG    += console
 
 SOURCES = \
     main.cpp \
@@ -18,13 +17,11 @@ HEADERS = \
     server.h \
     daq.h
 
-target.path = /home/rpi/btserverqtbuild
+target.path = /home/pi/btserverqtbuild
 conf.path = $$target.path
 conf.files = $$_PRO_FILE_PWD_/config.txt
 INSTALLS += target conf
 
-QMAKE_CFLAGS = -I/usr/lib
-QMAKE_CXXFLAGS = -I/usr/lib
+INCLUDEPATH += /usr/include/bluetooth
 INCLUDEPATH += /usr/include
-#LIBS += -L/usr/lib -lwiringPi -lbluetooth
-LIBS += -L/mnt/rasp-pi-rootfs/usr/lib -lwiringPi -lpthread -lbluetooth -lconfig
+LIBS = -L/mnt/rasp-pi-rootfs/usr/lib -lwiringPi -lpthread -lbluetooth -lconfig

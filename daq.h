@@ -57,11 +57,11 @@ const uint8_t ADS1298_WCT2 = 0x19;
 // =======================================================================
 // GPIO PINs
 // =======================================================================
-const int START = 6;
-const int DRDY = 7;
-const int nRESET = 5;
+const int START = 2;
+const int DRDY = 3;
+const int nRESET = 26;
 const int CLKSEL = 2;
-const int nCS = 10;
+const int nCS = 1;
 const int MOSI = 12;
 const int MISO = 13;
 const int chan = 0;

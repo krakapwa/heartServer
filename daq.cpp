@@ -9,7 +9,7 @@ DataOut buffer;
 Daq::Daq(QObject  *parent)
     :QObject(parent), quit(false)
 {
-    rootPath = "/home/rpi/btserverqtbuild/";
+    rootPath = "/home/pi/btserverqtbuild/";
     ads1298setup();
     quit = false;
 }
@@ -103,10 +103,10 @@ void Daq::ads1298setup ()
 {
     //serv->printWriteLog("Starting ADS1298 setup...") ;
     qDebug() << "Starting ADS1298 setup...";
-    int fclk = 7000000; //2.048MHz (max 20MHz)
+    int fclk = 2000000; //2.048MHz (max 20MHz)
 
     qDebug() <<  "Calling wiringPiSetup()";
-    wiringPiSetup(); //init SPI pins
+    wiringPiSetupSys(); //init SPI pins
 
     int fd;
     qDebug() << "Calling wiringPiSetup()";
@@ -148,6 +148,7 @@ void Daq::ads1298setup ()
     int cfgtmp;
     int len = 27;
     uint8_t spiDataWrite[len];
+    qDebug() << "Initializing config file";
     config_init(&cfg);
 
     //config_file_name = "/home/rpi/btserverqtbuild/config.txt";
