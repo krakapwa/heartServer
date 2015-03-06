@@ -40,8 +40,6 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
-//#include <stdio.h>
-//#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fstream>
@@ -56,11 +54,14 @@
 #include <QtCore/QObject>
 #include <QDebug>
 #include <QTimer>
+#include <QList>
+#include <daq.h>
+#include <QThread>
 
 QT_USE_NAMESPACE
 
 class Daq;
-class DataOut;
+class Data;
 
 class Server: public QObject
 {
@@ -70,11 +71,11 @@ public:
     Server(QObject *parent=0);
     Server(Daq& daqIn);
     ~Server();
-    void setDaq(Daq& daqIn);
+    void setDaq(Daq& daqIn, QThread& daqInThread);
     void printWriteLog(const QString &message);
 
 private:
-    void sendPacket(DataOut&);
+    void sendPacket(Data&);
     void showMessage(const QString &sender, const QString &message);
     void clientConnected(const QString &name);
     void clientDisconnected(const QString &name);
@@ -123,11 +124,11 @@ private:
     bool gotTime;
     bool started;
     bool stopped;
-    Daq* daq;
-    QThread * daqThread;
+    QList<Daq*> daqs;
+    QList<QThread*> daqThreads;
 
 private slots:
-    void getBuffer(DataOut&);
+    void getBuffer(Data&);
     void getMsgDaq(QString);
 signals:
     void daqStartContinuous(QString);

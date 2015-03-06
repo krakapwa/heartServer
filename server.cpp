@@ -40,6 +40,8 @@
 
 #include "server.h"
 #include "daq.h"
+#include "daqADS1298.h"
+#include "data.h"
 
 
 Server::Server(QObject *parent)
@@ -66,15 +68,24 @@ Server::Server(QObject *parent)
     client_addr = {0};
     opt  = sizeof(client_addr);
 
-    //Create daq object and its corresponding thread
-    daq = new Daq;
-    daqThread = new QThread;
+    //Create ADS1298 daq objects and corresponding threads
+    DaqADS1298* myDaqADS1298 = new DaqADS1298;
+    QThread* myDaqThreadADS1298 = new QThread;
     QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
-            daq, SLOT(startContinuous(QString)));
+            myDaqADS1298, SLOT(startContinuous(QString)));
     QObject::connect(this, SIGNAL(daqStopContinuous()),
-            daq, SLOT(stopContinuous()));
-    daq->moveToThread(daqThread);
-    daqThread->start(); //Starting thread (not acquisition)
+             myDaqADS1298, SLOT(stopContinuous()));
+    myDaqADS1298->moveToThread(myDaqThreadADS1298);
+    myDaqThreadADS1298->start(); //Starting thread (not acquisition)
+
+    //Add to daq list
+    setDaq(*myDaqADS1298, *myDaqThreadADS1298);
+
+    //Setup daqs
+    qDebug() << "Setting up daqs";
+    for (int i = 0; i < daqs.size(); ++i) {
+        daqs[i]->setup();
+    }
 
     startServer();
     makeLog();
@@ -99,8 +110,10 @@ void Server::setTimeout(int seconds){
     setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
 }
-void Server::setDaq(Daq& daqIn){
-    daq = &daqIn;
+
+void Server::setDaq(Daq& daqIn, QThread& daqInThread){
+    daqs.append(&daqIn);
+    daqThreads.append(&daqInThread);
 }
 
 void Server::startServer()
@@ -199,7 +212,7 @@ QString Server::readSocket(char* buffer, int buffer_size)
 
 }
 
-void Server::getBuffer(DataOut &x){
+void Server::getBuffer(Data &x){
     ++packsIn;
     if(packsIn == ratioPacks){
         sendPacket(x);
@@ -208,8 +221,8 @@ void Server::getBuffer(DataOut &x){
 
 }
 
-void Server::sendPacket(DataOut &pack){
-   write(clientSocket, (char*)&pack, sizeof(DataOut));
+void Server::sendPacket(Data &pack){
+   write(clientSocket, (char*)&pack, sizeof(Data));
 }
 void Server::communicate()
 {

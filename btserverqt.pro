@@ -9,17 +9,20 @@ SOURCES = \
         wiringPi/wiringPi.c \
         wiringPi/wiringPiSPI.c \
     server.cpp \
+    daqADS1298.cpp \
     daq.cpp
 
 HEADERS = \
         wiringPi/wiringPi.h \
         wiringPi/wiringPiSPI.h \
     server.h \
-    daq.h
+    daqADS1298.h \
+    daq.h \
+    data.h
 
 target.path = /home/pi/btserverqtbuild
 conf.path = $$target.path
-conf.files = $$_PRO_FILE_PWD_/config.txt
+conf.files = $$_PRO_FILE_PWD_/configADS1298.txt
 INSTALLS += target conf
 
 INCLUDEPATH += /usr/include/bluetooth

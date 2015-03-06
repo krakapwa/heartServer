@@ -39,7 +39,7 @@
 ****************************************************************************/
 
 #include "server.h"
-#include "daq.h"
+#include "daqADS1298.h"
 //#include <QApplication>
 #include <QCoreApplication>
 
@@ -47,8 +47,8 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
     Server serv;
-    Daq daq;
-    serv.setDaq(daq);
+    //DaqADS1298 daqADS1298;
+    //serv.setDaq(daqADS1298);
 
     return 0;
 }
