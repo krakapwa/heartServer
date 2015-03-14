@@ -1,59 +1,61 @@
 #include "daqADS1298.h"
-#include "server.h"
-
-// Variables used in static function
-std::fstream myFile;
-Data y;
-Data buffer;
 
 
-void DaqADS1298::getData(void){
-
-    uint8_t spiData[numSerialBytes] = {0};
-
-    wiringPiSPIDataRW(chan, spiData ,numSerialBytes);
-
-    for(int i=0;i<numSerialBytes; ++i){
-       y.spiData[i]	= spiData[i];
-    }
-
-    appendToFile(y);
+DaqADS1298::DaqADS1298(){
+    qDebug() << "ADS1298 contructor";
+    DRDY = ADS1298_DRDY;
+    y = new DataADS1298();
+    buffer = new DataADS1298();
 }
 
+void DaqADS1298::getData(){
+
+    uint8_t tmpSpiData[y->numSerialBytes];
+    digitalWrite(ADS1298_nCS,LOW);
+    wiringPiSPIDataRW(ADS1298_chan, tmpSpiData ,y->numSerialBytes);
+
+    digitalWrite(ADS1298_nCS,HIGH);
+    for(int i=0;i< y->numSerialBytes; ++i){
+       y->spiData[i] = tmpSpiData[i];
+    }
+
+    appendToFile(*y);
+}
 
 void DaqADS1298::startContinuous(QString fname){
     std::string fnamePath;
     fnamePath = rootPath + fname.toStdString();
 
     myFile.open(fnamePath.c_str(), std::ios::out|std::ios::binary);
-    sendCmd(RDATAC);
-    wiringPiISR(DRDY, INT_EDGE_FALLING, &DaqADS1298::getData);
-    digitalWrite(START,HIGH);
+    digitalWrite(ADS1298_START,HIGH);
+    delay(10);
+    sendCmd(ADS1298_RDATAC);
 }
 
 void DaqADS1298::stopContinuous(){
 
-    digitalWrite(START,LOW);
-    //myFile.fsync();
-    //fsync(myFile);
+    digitalWrite(ADS1298_START,LOW);
     myFile.close();
-    //myFile.open(fnamePath.c_str(), std::ios::out|std::ios::binary);
 }
 
 void DaqADS1298::writeReg(uint8_t address, uint8_t data)
 {
 
-    // SDATAC (stop read data continuous mode) default mode
+    // ADS1298_SDATAC (stop read data continuous mode) default mode
     uint8_t spiDataCmd[2];
-    spiDataCmd[0] = SDATAC;
-    wiringPiSPIDataRW(chan, spiDataCmd ,1);
-    delay(10);
+    spiDataCmd[0] = ADS1298_SDATAC;
+
+    digitalWrite(ADS1298_nCS,LOW);
+
+    //delayMicroseconds(1);
+    wiringPiSPIDataRW(ADS1298_chan, spiDataCmd ,1);
 
     uint8_t spiDataWrite[3];
-    spiDataWrite[0] = WREG+address;
+    spiDataWrite[0] = ADS1298_WREG+address;
     spiDataWrite[1] = 0x00;
     spiDataWrite[2] = data;
-    wiringPiSPIDataRW(chan, spiDataWrite, 3);
+    wiringPiSPIDataRW(ADS1298_chan, spiDataWrite, 3);
+    digitalWrite(ADS1298_nCS,HIGH);
 }
 
 void DaqADS1298::sendCmd(uint8_t cmd)
@@ -61,36 +63,41 @@ void DaqADS1298::sendCmd(uint8_t cmd)
 
     uint8_t spiDataCmd[1];
     spiDataCmd[0]=cmd;
-    wiringPiSPIDataRW(chan, spiDataCmd ,1);
+    digitalWrite(ADS1298_nCS,LOW);
+    //delayMicroseconds(1);
+    wiringPiSPIDataRW(ADS1298_chan, spiDataCmd ,1);
     delay(10);
+    digitalWrite(ADS1298_nCS,HIGH);
 }
 
 uint8_t DaqADS1298::readReg(uint8_t address)
 {
-    sendCmd(SDATAC);
+    sendCmd(ADS1298_SDATAC);
 
+    digitalWrite(ADS1298_nCS,LOW);
     uint8_t spiDataRead[3];
-    spiDataRead[0] = RREG+address;
+    spiDataRead[0] = ADS1298_RREG+address;
     spiDataRead[1] = 0x00;
     spiDataRead[2] = 0x00;
-    wiringPiSPIDataRW(chan, spiDataRead, 3);
+    //delayMicroseconds(1);
+    wiringPiSPIDataRW(ADS1298_chan, spiDataRead, 3);
     delay(10);
+    digitalWrite(ADS1298_nCS,HIGH);
 
     return spiDataRead[2];
 }
 
-void DaqADS1298::setup ()
+void DaqADS1298::setup()
 {
     //serv->printWriteLog("Starting ADS1298 setup...") ;
     qDebug() << "Starting ADS1298 setup...";
-    int fclk = 2000000; //2.048MHz (max 20MHz)
+    int fclk = 1000000; //2.048MHz (max 20MHz)
 
-    qDebug() <<  "Calling wiringPiSetup()";
+    qDebug() <<  "Calling wiringPiSetupSys()";
     wiringPiSetupSys(); //init SPI pins
 
     int fd;
-    qDebug() << "Calling wiringPiSetup()";
-    fd=wiringPiSPISetup (chan, fclk); //init SPI pins
+    fd=wiringPiSPISetup (ADS1298_chan, fclk); //init SPI pins
 
     uint8_t spiMode = SPI_MODE_1;
     qDebug() << "Setting SPI mode to 1";
@@ -99,43 +106,40 @@ void DaqADS1298::setup ()
 
     qDebug() << "Setting up pins";
     // Setup gpio pin modes for SPI
-    pinMode(START, OUTPUT); //START
-    pinMode(DRDY, INPUT); //DRDY
-    pinMode(nRESET, OUTPUT); //_RESET
-    pinMode(CLKSEL, OUTPUT);
-    pinMode(nCS, OUTPUT);
-    pullUpDnControl (nCS, PUD_DOWN) ;
-    pullUpDnControl (MOSI, PUD_OFF) ;
-    pullUpDnControl (MISO, PUD_OFF) ;
+    pinMode(ADS1298_START, OUTPUT); //ADS1298_START
+    pinMode(ADS1298_DRDY, INPUT); //ADS1298_DRDY
+    pinMode(ADS1298_nRESET, OUTPUT); //_RESET
+    pinMode(ADS1298_nCS, OUTPUT);
+    pullUpDnControl (ADS1298_nCS, PUD_OFF);
+    pullUpDnControl (ADS1298_MOSI, PUD_OFF);
+    pullUpDnControl (ADS1298_MISO, PUD_OFF);
+    pullUpDnControl (ADS1298_nRESET, PUD_UP);
 
-
+    digitalWrite(ADS1298_START,LOW);
+    //digitalWrite(ADS1298_nCS,LOW);
     // Power-up sequence
     qDebug() << "Power-up sequence";
-    digitalWrite(CLKSEL, HIGH);
-    delay(100);
-    digitalWrite(nRESET,HIGH);
+    //digitalWrite(ADS1298_CLKSEL, HIGH);
+    digitalWrite(ADS1298_nRESET,HIGH);
+    delay(10);
+    digitalWrite(ADS1298_nRESET,LOW);
     delay(1000);
-    digitalWrite(nRESET,LOW);
-    delay(100);
-    digitalWrite(nRESET,HIGH);
+    digitalWrite(ADS1298_nRESET,HIGH);
 
-    // SDATAC (stop read data continuous mode) default mode
-    qDebug() << "Sending SDATAC";
-    sendCmd(SDATAC);
-
+    // ADS1298_SDATAC (stop read data continuous mode) default mode
+    qDebug() << "Sending ADS1298_SDATAC";
+    sendCmd(ADS1298_SDATAC);
 
     //Read config file
-    loadCfg(cfgFileName);
+    loadCfg();
 
     int len = 27;
     uint8_t spiDataWrite[len];
 
-
     /*Read config parameters and write to uC*/
     setting = config_lookup(&cfg, "registers");
 
-
-    spiDataWrite[0] = WREG+1; // WREG +1 (address of CONFIG1)
+    spiDataWrite[0] = ADS1298_WREG+1; // ADS1298_WREG +1 (address of CONFIG1)
     spiDataWrite[1] = 25 - 1; // Num of regs to write - 1
 
     int cfgtmp;
@@ -192,14 +196,15 @@ void DaqADS1298::setup ()
         spiDataWrite[25] = cfgtmp;
         config_setting_lookup_int(setting, "WCT2", &cfgtmp);
         spiDataWrite[26] = cfgtmp;
-
     }
 
     config_destroy(&cfg);
 
     //Write registers
     qDebug() << "Writing config registers";
-    wiringPiSPIDataRW(chan, spiDataWrite, len);
+    digitalWrite(ADS1298_nCS,LOW);
+    wiringPiSPIDataRW(ADS1298_chan, spiDataWrite, len);
+    digitalWrite(ADS1298_nCS,HIGH);
     delay(100);
 
     qDebug() << "Reading config registers";
@@ -209,14 +214,13 @@ void DaqADS1298::setup ()
     qDebug() << "ADS1298 setup done.";
 }
 
-void DaqADS1298::appendToFile(Data y){
+void DaqADS1298::appendToFile(DataADS1298 y){
 
-    myFile.write((char*)&y, sizeof (Data));
+    myFile.write((char*)&y, sizeof (DataADS1298));
 
 }
 
-
-void DaqADS1298::writeToBuffer(Data &y){
+void DaqADS1298::writeToBuffer(DataADS1298* y){
     buffer = y;
 }
 
@@ -231,4 +235,8 @@ void DaqADS1298::printRegs(){
         res = readReg((uint8_t)i);
         qDebug() << "Register: " + QString::number(i) + " = " + QString::number(res);
     }
+}
+
+int DaqADS1298::getDrdyPin(){
+    return DRDY;
 }

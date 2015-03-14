@@ -57,10 +57,10 @@
 #include <QList>
 #include <daq.h>
 #include <QThread>
+#include "data.h"
 
 QT_USE_NAMESPACE
 
-class Daq;
 class Data;
 
 class Server: public QObject
@@ -73,6 +73,8 @@ public:
     ~Server();
     void setDaq(Daq& daqIn, QThread& daqInThread);
     void printWriteLog(const QString &message);
+    QList<Daq*> daqs;
+    QList<QThread*> daqThreads;
 
 private:
     void sendPacket(Data&);
@@ -81,6 +83,7 @@ private:
     void clientDisconnected(const QString &name);
     void connected(const QString &name);
     int currentAdapterIndex;
+    static void getData();
 
     int sockfd, newsockfd;
     socklen_t clilen;
@@ -124,8 +127,6 @@ private:
     bool gotTime;
     bool started;
     bool stopped;
-    QList<Daq*> daqs;
-    QList<QThread*> daqThreads;
 
 private slots:
     void getBuffer(Data&);

@@ -17,7 +17,7 @@
 const std::string serverBtAdr = "00:02:72:C9:1B:25";
 
 class Server;
-class Data;
+
 
 class Daq: public QObject
 {
@@ -28,24 +28,24 @@ public:
     ~Daq();
     void virtual setup()=0;
     void run();
+    void setCfgFileName(std::string);
+    virtual void getData() = 0;
+
 
 private:
 
     void setServ(Server&);
 
 protected:
-
     std::string rootPath;
     QMutex mutex;
     QWaitCondition cond;
     bool quit;
     Server* serv;
-
-    //Config
     config_t cfg;
     config_setting_t *setting;
-    std::string config_file_name;
-    void loadCfg(std::string);
+    std::string cfgFileName;
+    void loadCfg();
 
 };
 

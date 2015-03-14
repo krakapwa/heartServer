@@ -162,9 +162,10 @@ extern void gpioClockSet        (int pin, int freq) ;
 
 extern int  waitForInterrupt    (int pin, int mS) ;
 extern int  wiringPiISR         (int pin, int mode, void (*function)(void)) ;
+extern int  wiringPiISRargs     (int pin, int mode, void (*function)(void), void * p) ;
+extern void* pThisCallback;
 
 // Threads
-
 extern int  piThreadCreate      (void *(*fn)(void *)) ;
 extern void piLock              (int key) ;
 extern void piUnlock            (int key) ;

@@ -39,8 +39,6 @@
 ****************************************************************************/
 
 #include "server.h"
-#include "daqADS1298.h"
-//#include <QApplication>
 #include <QCoreApplication>
 
 int main(int argc, char *argv[])

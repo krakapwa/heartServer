@@ -39,10 +39,12 @@
 ****************************************************************************/
 
 #include "server.h"
-#include "daq.h"
 #include "daqADS1298.h"
-#include "data.h"
+#include "daqMPU6000.h"
+#include "daq.h"
 
+
+void* pThisCallback = NULL;
 
 Server::Server(QObject *parent)
     : QObject(parent),
@@ -75,11 +77,26 @@ Server::Server(QObject *parent)
             myDaqADS1298, SLOT(startContinuous(QString)));
     QObject::connect(this, SIGNAL(daqStopContinuous()),
              myDaqADS1298, SLOT(stopContinuous()));
+    myDaqADS1298->setCfgFileName("configADS1298.txt"); //Acquisition triggered on ADS1298 DRDY
     myDaqADS1298->moveToThread(myDaqThreadADS1298);
     myDaqThreadADS1298->start(); //Starting thread (not acquisition)
 
+    //Create MPU6000 daq objects and corresponding threads
+    DaqMPU6000* myDaqMPU6000 = new DaqMPU6000;
+    QThread* myDaqThreadMPU6000 = new QThread;
+    QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
+            myDaqMPU6000, SLOT(startContinuous(QString)));
+    QObject::connect(this, SIGNAL(daqStopContinuous()),
+             myDaqMPU6000, SLOT(stopContinuous()));
+    myDaqMPU6000->setDrdyPin(myDaqADS1298->getDrdyPin()); //Acquisition triggered on ADS1298 DRDY
+    myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
+    myDaqMPU6000->moveToThread(myDaqThreadMPU6000);
+    myDaqThreadMPU6000->start(); //Starting thread (not acquisition)
+
+
     //Add to daq list
     setDaq(*myDaqADS1298, *myDaqThreadADS1298);
+    //setDaq(*myDaqMPU6000, *myDaqThreadMPU6000);
 
     //Setup daqs
     qDebug() << "Setting up daqs";
@@ -87,9 +104,31 @@ Server::Server(QObject *parent)
         daqs[i]->setup();
     }
 
+    //Setup interrupt on DRDY pin of ADS1298. Will trigger acquisitions on other daqs as well.
+    QString pThisCallbackStr = QString("0x%1").arg((quintptr)pThisCallback,
+                        QT_POINTER_SIZE * 2, 16, QChar('0'));
+    //qDebug() << "Interrupt on Pin: " + QString::number(myDaqADS1298->getDrdyPin());
+    //qDebug() << "pThisCallback: " + pThisCallbackStr;
+    wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData,this) ;
+    //pThisCallbackStr = QString("0x%1").arg((quintptr)pThisCallback,QT_POINTER_SIZE * 2, 16, QChar('0'));
+    //qDebug() << "pThisCallback: " + pThisCallbackStr;
+    //pThisCallbackStr = QString("0x%1").arg((quintptr)this,QT_POINTER_SIZE * 2, 16, QChar('0'));
+    //qDebug() << "this: " + pThisCallbackStr;
+
     startServer();
     makeLog();
     communicate();
+}
+
+void Server::getData(void){
+    Server* pThisCallbackCast = static_cast<Server*>(pThisCallback);
+    //pThisCallbackCast->getData();
+
+    QList<Daq*> myDaqs = pThisCallbackCast->daqs;
+    for( int i=0; i<myDaqs.count(); ++i ){
+        myDaqs[i]->getData();
+    }
+
 }
 
 Server::~Server()
@@ -255,8 +294,8 @@ void Server::communicate()
                     //printWriteLog("Starting acquisition");
                     fName = "rpiData_" + lastTime + ".bin";
                     msg = readSocket(buffer,msgSize);
-                    printWriteLog("Startin acquisition. File: " + fName);
                     //myFile.open(fName.toUtf8(), std::ios::out|std::ios::binary);
+                    printWriteLog("Starting acquisition. File: " + fName);
                     emit daqStartContinuous(fName);
                     started = true;
                     stopped = false;
@@ -269,7 +308,7 @@ void Server::communicate()
             else if (btStop==msg) {
                 printWriteLog("received [" + msg + "]");
                 if(started){
-                    //printWriteLog("Stopping acquisition");
+                    printWriteLog("Stopping acquisition");
                     emit daqStopContinuous();
                     started = false;
                     stopped = true;
