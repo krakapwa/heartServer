@@ -70,6 +70,10 @@ Server::Server(QObject *parent)
     client_addr = {0};
     opt  = sizeof(client_addr);
 
+
+    //Testing QBluetooth
+ QBluetoothHostInfo* localDevice = new QBluetoothHostInfo;
+
     //Create ADS1298 daq objects and corresponding threads
     DaqADS1298* myDaqADS1298 = new DaqADS1298;
     QThread* myDaqThreadADS1298 = new QThread;

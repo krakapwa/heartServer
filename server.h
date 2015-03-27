@@ -44,8 +44,8 @@
 #include <unistd.h>
 #include <fstream>
 #include <iostream>
-#include <bluetooth.h>
-#include <rfcomm.h>
+#include <bluetooth/bluetooth.h>
+#include <bluetooth/rfcomm.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -57,6 +57,9 @@
 #include <QList>
 #include <daq.h>
 #include <QThread>
+#include <qbluetoothserviceinfo.h>
+#include <qbluetoothhostinfo.h>
+#include <qbluetoothservicediscoveryagent.h>
 #include "data.h"
 
 QT_USE_NAMESPACE

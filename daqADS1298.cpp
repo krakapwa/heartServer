@@ -15,11 +15,12 @@ void DaqADS1298::getData(){
     wiringPiSPIDataRW(ADS1298_chan, tmpSpiData ,y->numSerialBytes);
 
     digitalWrite(ADS1298_nCS,HIGH);
+    //qDebug() << QString::number(tmpSpiData[3]) + QString::number(tmpSpiData[4]) + QString::number(tmpSpiData[5]) + QString::number(tmpSpiData[6]) + QString::number(tmpSpiData[7]);
     for(int i=0;i< y->numSerialBytes; ++i){
        y->spiData[i] = tmpSpiData[i];
     }
 
-    appendToFile(*y);
+    appendToFile(y);
 }
 
 void DaqADS1298::startContinuous(QString fname){
@@ -214,10 +215,9 @@ void DaqADS1298::setup()
     qDebug() << "ADS1298 setup done.";
 }
 
-void DaqADS1298::appendToFile(DataADS1298 y){
+void DaqADS1298::appendToFile(DataADS1298* y){
 
-    myFile.write((char*)&y, sizeof (DataADS1298));
-
+    myFile.write((char*)y->spiData, sizeof(uint8_t)*y->numSerialBytes);
 }
 
 void DaqADS1298::writeToBuffer(DataADS1298* y){

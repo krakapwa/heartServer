@@ -45,13 +45,13 @@ private:
     void writeReg(uint8_t address, uint8_t data);
     void sendCmd(uint8_t cmd);
     uint8_t readReg(uint8_t address);
-    void appendToFile(DataADS1298);
+    void appendToFile(DataADS1298*);
     void writeToBuffer(DataADS1298*);
     void printRegs();
     int DRDY;
     DataADS1298* y;
     DataADS1298* buffer;
-    std::fstream myFile;
+    std::ofstream myFile;
 };
 
 #endif // DAQADS1298_H

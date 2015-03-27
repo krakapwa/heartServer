@@ -1,9 +1,8 @@
 TEMPLATE = app
 TARGET = heartServer
 
-QT = core
+QT = core bluetooth
 CONFIG    += console c++11
-
 
 SOURCES = \
     main.cpp \
@@ -32,7 +31,9 @@ INCLUDEPATH += /usr/include/bluetooth
 LIBS = -L/mnt/rasp-pi-rootfs/usr/lib -lwiringPi -lpthread -lbluetooth -lconfig
 
 config.path = /home/pi/heartServer
-config.files = /home/krakapwa/Documents/heartServer/config/*
+config.files = /home/krakapwa/Documents/rpi2/heartServer/config/*
 
 target.path = /home/pi/heartServer
 INSTALLS += target config
+
+OTHER_FILES += config/configADS1298.txt
