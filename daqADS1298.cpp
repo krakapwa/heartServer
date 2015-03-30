@@ -1,6 +1,7 @@
 #include "daqADS1298.h"
 
-static uint8_t tmp[nSerialBytes];
+
+//static uint8_t tmp[nSerialBytes];
 
 DaqADS1298::DaqADS1298(){
     DRDY = ADS1298_DRDY;
@@ -9,13 +10,14 @@ DaqADS1298::DaqADS1298(){
 
 void DaqADS1298::getData(){
 
-    //uint8_t tmp[nSerialBytes];
+    uint8_t tmp[27];
     digitalWrite(ADS1298_nCS,LOW);
-    wiringPiSPIDataRW(ADS1298_chan, tmp ,nSerialBytes);
+    wiringPiSPIDataRW(ADS1298_chan, tmp ,27);
     digitalWrite(ADS1298_nCS,HIGH);
 
     //qDebug() << tmp[10];
-    Daq::getWriteData(&myFile,tmp, nSerialBytes);
+    //Daq::getWriteData(&myFile,tmp, nSerialBytes);
+    myFile.write((char*)&tmp, nSerialBytes*sizeof(uint8_t));
 }
 
 void DaqADS1298::startContinuous(QString fname){

@@ -1,10 +1,7 @@
 #include <daq.h>
 
-void Daq::getWriteData(std::ofstream* file, uint8_t* data, int len){
-    //qDebug() << data[10];
+uint8_t tmp2[27];
 
-    file->write((char*)&data, len*sizeof(uint8_t));
-}
 
 Daq::Daq(QObject  *parent)
         : QObject(parent)
@@ -52,4 +49,3 @@ void Daq::loadCfg(){
     //setting = config_lookup(&cfg, "registers");
 
 }
-

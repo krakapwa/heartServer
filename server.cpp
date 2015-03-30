@@ -137,14 +137,11 @@ Server::Server(QObject *parent)
 
     //Create ADS1298 daq objects and corresponding threads
     DaqADS1298* myDaqADS1298 = new DaqADS1298;
-    QThread* myDaqThreadADS1298 = new QThread;
     QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
             myDaqADS1298, SLOT(startContinuous(QString)));
     QObject::connect(this, SIGNAL(daqStopContinuous()),
              myDaqADS1298, SLOT(stopContinuous()));
     myDaqADS1298->setCfgFileName("configADS1298.txt"); //Acquisition triggered on ADS1298 DRDY
-    myDaqADS1298->moveToThread(myDaqThreadADS1298);
-    myDaqThreadADS1298->start(); //Starting thread (not acquisition)
 
     /*
     //Create MPU6000 daq objects and corresponding threads
@@ -162,7 +159,7 @@ Server::Server(QObject *parent)
 
 
     //Add to daq list
-    setDaq(*myDaqADS1298, *myDaqThreadADS1298);
+    setDaq(*myDaqADS1298);
     //setDaq(*myDaqMPU6000, *myDaqThreadMPU6000);
 
     //Setup daqs
@@ -174,20 +171,26 @@ Server::Server(QObject *parent)
     //Setup interrupt on DRDY pin of ADS1298. Will trigger acquisitions on other daqs as well.
     wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData,this) ;
 
-    //For testing, start automatically
-    //processMessage("startStop 00-00-00_00-00-00");
-    //delay(3000);
-    //processMessage("startStop 00-00-00_00-00-00");
 }
 
 void Server::getData(void){
     Server* pThisCallbackCast = static_cast<Server*>(pThisCallback);
-    //pThisCallbackCast->getData();
 
     QList<Daq*> myDaqs = pThisCallbackCast->daqs;
     for( int i=0; i<myDaqs.count(); ++i ){
-        myDaqs[i]->getData();
+        //myDaqs[i]->getData();
+        getWriteData(&(myDaqs[i]->myFile),8, 0, 27);
     }
+}
+
+static uint8_t bufferADS1298[27] = {0};
+void Server::getWriteData(std::ofstream* file,int ncsPin, int chan, int len){
+
+    digitalWrite(ncsPin,LOW);
+    wiringPiSPIDataRW(chan, bufferADS1298 ,len);
+    digitalWrite(ncsPin,HIGH);
+
+    file->write((char*)&bufferADS1298, len*sizeof(uint8_t));
 }
 
 Server::~Server()
@@ -199,11 +202,9 @@ void Server::getMsgDaq(QString msg){
    qDebug() << msg;
 }
 
-void Server::setDaq(Daq& daqIn, QThread& daqInThread){
+void Server::setDaq(Daq& daqIn){
     daqs.append(&daqIn);
-    daqThreads.append(&daqInThread);
 }
-
 
 void Server::clientConnected()
 {

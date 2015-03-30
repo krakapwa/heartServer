@@ -29,7 +29,7 @@ public:
     void virtual setup()=0;
     void setCfgFileName(QString);
     virtual void getData() = 0;
-    static void getWriteData(std::ofstream *, uint8_t*, int);
+    std::ofstream myFile;
 
 private:
 
@@ -37,7 +37,6 @@ private:
 
 protected:
     void run();
-    std::ofstream myFile;
     QString rootPath;
     QMutex mutex;
     QWaitCondition cond;

@@ -65,9 +65,8 @@ public:
     Server(QObject *parent=0);
     Server(Daq& daqIn);
     ~Server();
-    void setDaq(Daq& daqIn, QThread& daqInThread);
+    void setDaq(Daq& daqIn);
     QList<Daq*> daqs;
-    QList<QThread*> daqThreads;
 
   QList<QBluetoothHostInfo> localAdapters;
   QBluetoothServer *rfcommServer;
@@ -78,6 +77,7 @@ private:
     void showMessage(const QString &sender, const QString &message);
     void connected(const QString &name);
     static void getData();
+    static void getWriteData(std::ofstream *, int, int, int);
 
     void startServer();
     void restartServer();
