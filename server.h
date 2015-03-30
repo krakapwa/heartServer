@@ -56,7 +56,6 @@
 
 QT_USE_NAMESPACE
 
-class Data;
 
 class Server: public QObject
 {
@@ -114,6 +113,7 @@ private slots:
     void clientConnected();
     void clientDisconnected();
     void readSocket();
+
 signals:
     void messageReceived(const QString &sender, const QString &message);
     void clientConnected(const QString &name);

@@ -1,5 +1,11 @@
 #include <daq.h>
 
+void Daq::getWriteData(std::ofstream* file, uint8_t* data, int len){
+    //qDebug() << data[10];
+
+    file->write((char*)&data, len*sizeof(uint8_t));
+}
+
 Daq::Daq(QObject  *parent)
         : QObject(parent)
 {

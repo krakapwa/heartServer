@@ -34,6 +34,7 @@ public:
 
 signals:
     void sendBuffer(DataADS1298);
+    void sendDataToServer(DaqADS1298*, DataADS1298);
     void sendMessageServer(QString);
 
 private slots:
@@ -48,7 +49,7 @@ private:
     void writeToBuffer(DataADS1298*);
     void printRegs();
     int DRDY;
-    DataADS1298 y;
+    DataADS1298* y;
 };
 
 #endif // DAQADS1298_H

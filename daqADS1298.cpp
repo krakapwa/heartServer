@@ -1,6 +1,6 @@
 #include "daqADS1298.h"
 
-   static uint8_t tmp[nSerialBytes];
+static uint8_t tmp[nSerialBytes];
 
 DaqADS1298::DaqADS1298(){
     DRDY = ADS1298_DRDY;
@@ -9,12 +9,13 @@ DaqADS1298::DaqADS1298(){
 
 void DaqADS1298::getData(){
 
-
+    //uint8_t tmp[nSerialBytes];
     digitalWrite(ADS1298_nCS,LOW);
     wiringPiSPIDataRW(ADS1298_chan, tmp ,nSerialBytes);
     digitalWrite(ADS1298_nCS,HIGH);
-    qDebug() << tmp[10];
-    myFile.write ((char*)&tmp, nSerialBytes*sizeof(uint8_t));
+
+    //qDebug() << tmp[10];
+    Daq::getWriteData(&myFile,tmp, nSerialBytes);
 }
 
 void DaqADS1298::startContinuous(QString fname){
@@ -93,7 +94,7 @@ void DaqADS1298::setup()
 {
     //serv->printWriteLog("Starting ADS1298 setup...") ;
     qDebug() << "Starting ADS1298 setup...";
-    int fclk = 1000000; //2.048MHz (max 20MHz)
+    int fclk = 3000000; //2.048MHz (max 20MHz)
 
     qDebug() <<  "Calling wiringPiSetupSys()";
     wiringPiSetupSys(); //init SPI pins

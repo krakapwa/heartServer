@@ -12,7 +12,6 @@
 #include <linux/spi/spidev.h>
 #include <sys/ioctl.h>
 #include <stdint.h>
-//#include <QFile>
 #include <data.h>
 #include <fstream>
 #include <iostream>
@@ -28,16 +27,16 @@ public:
     Daq(QObject *parent = 0);
     ~Daq();
     void virtual setup()=0;
-    void run();
     void setCfgFileName(QString);
     virtual void getData() = 0;
-
+    static void getWriteData(std::ofstream *, uint8_t*, int);
 
 private:
 
     void setServ(Server&);
 
 protected:
+    void run();
     std::ofstream myFile;
     QString rootPath;
     QMutex mutex;
