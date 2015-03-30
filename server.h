@@ -38,17 +38,8 @@
 **
 ****************************************************************************/
 
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <string.h>
-#include <unistd.h>
-#include <fstream>
-#include <iostream>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
 #include <time.h>
 #include <errno.h>
 #include <QtCore/QObject>
@@ -59,7 +50,8 @@
 #include <QThread>
 #include <qbluetoothserviceinfo.h>
 #include <qbluetoothhostinfo.h>
-#include <qbluetoothservicediscoveryagent.h>
+#include <qbluetoothserver.h>
+#include <QRegularExpression>
 #include "data.h"
 
 QT_USE_NAMESPACE
@@ -75,38 +67,23 @@ public:
     Server(Daq& daqIn);
     ~Server();
     void setDaq(Daq& daqIn, QThread& daqInThread);
-    void printWriteLog(const QString &message);
     QList<Daq*> daqs;
     QList<QThread*> daqThreads;
 
+  QList<QBluetoothHostInfo> localAdapters;
+  QBluetoothServer *rfcommServer;
+  QBluetoothServiceInfo serviceInfo;
+
 private:
-    void sendPacket(Data&);
+    void sendMessage(const QString &message);
     void showMessage(const QString &sender, const QString &message);
-    void clientConnected(const QString &name);
-    void clientDisconnected(const QString &name);
     void connected(const QString &name);
-    int currentAdapterIndex;
     static void getData();
 
-    int sockfd, newsockfd;
-    socklen_t clilen;
-    char* cliaddr ;
-    const char* servmacaddr;
-    struct sockaddr_rc serv_addr, cli_addr;
-    void messageReceived(const QString &sender, const QString &message);
-    void clientConnected(int &sockfd);
-    void clientDisconnected(int &sockfd);
-    void sendMessage(const QString &message);
     void startServer();
     void restartServer();
-    void setTimeout(int seconds);
     void stopServer();
-    void communicate();
-    void makeLog();
-    void closeLog();
-    QString readSocket( char* buffer, int buffer_size);
-    int packsIn;
-    int ratioPacks;
+    void processMessage(const QString&);
 
     int clientSocket;
     int secsTimeout;
@@ -124,17 +101,23 @@ private:
     char* bufmsg;
     QString msg;
     time_t servTime;
-    std::ofstream oflog;
     QString lastTime;
     QString fName;
     bool gotTime;
     bool started;
-    bool stopped;
+
+    QList<QBluetoothSocket *> clientSockets;
+
 
 private slots:
-    void getBuffer(Data&);
     void getMsgDaq(QString);
+    void clientConnected();
+    void clientDisconnected();
+    void readSocket();
 signals:
+    void messageReceived(const QString &sender, const QString &message);
+    void clientConnected(const QString &name);
+    void clientDisconnected(const QString &name);
     void daqStartContinuous(QString);
     void daqStopContinuous();
 

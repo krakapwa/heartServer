@@ -43,36 +43,97 @@
 #include "daqMPU6000.h"
 #include "daq.h"
 
-
+#include <qbluetoothlocaldevice.h>
+static const QLatin1String serviceUuid("e8e10f95-1a70-4b27-9ccf-02010264e9c7");
 void* pThisCallback = NULL;
 
 Server::Server(QObject *parent)
-    : QObject(parent),
-      currentAdapterIndex(0)
+    : QObject(parent)
+
 {
 
-    msgSize = 256;
-    secsTimeout = 3; // seconds of timeout before socket is reinit
-    nCharsCommand = 5; // Read 4 character commands from client
-    btStart = "start";
-    btStop = "stop";
-    btKill = "kill";
-    btClock = "clock";
-    btWait = "wait";
     started = false;
-    stopped = true;
-    packsIn = 0; //Number of packets acquired
-    ratioPacks = 50; //ratio of packets to write to buffer
-
-    buf[18] = {0};
-    servmacaddr = "00:02:72:C9:1B:25" ; //rpi
-    serv_addr = {0};
-    client_addr = {0};
-    opt  = sizeof(client_addr);
-
 
     //Testing QBluetooth
- QBluetoothHostInfo* localDevice = new QBluetoothHostInfo;
+ localAdapters = QBluetoothLocalDevice::allDevices();
+ QBluetoothAddress localAdapterAddress = localAdapters.at(0).address();
+ qDebug() << "Address of local bluetooth adapter:" + localAdapterAddress.toString();
+ QBluetoothLocalDevice localAdapter(localAdapters.at(0).address());
+ QBluetoothAddress clientAddress("60:D8:19:AF:11:04") ;
+ localAdapter.pairingStatus(clientAddress);
+ qDebug() << "PairingStatus:" +  QString::number(localAdapter.pairingStatus(clientAddress));
+
+   rfcommServer = new QBluetoothServer(QBluetoothServiceInfo::RfcommProtocol, this);
+   connect(rfcommServer, SIGNAL(newConnection()), this, SLOT(clientConnected()));
+   bool result = rfcommServer->listen(localAdapterAddress);
+   if (!result) {
+       qDebug() << "Cannot bind chat server to" << localAdapterAddress.toString();
+       return;
+   }
+   else{
+
+       qDebug() << "Successfully bound chat server to" << localAdapterAddress.toString();
+   }
+
+   //! [Create the server]
+
+   //serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceRecordHandle, (uint)0x00010010);
+
+   //! [Class Uuuid must contain at least 1 entry]
+   QBluetoothServiceInfo::Sequence classId;
+
+   classId << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::SerialPort));
+   serviceInfo.setAttribute(QBluetoothServiceInfo::BluetoothProfileDescriptorList,
+                            classId);
+
+   classId.prepend(QVariant::fromValue(QBluetoothUuid(serviceUuid)));
+
+   serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceClassIds, classId);
+   serviceInfo.setAttribute(QBluetoothServiceInfo::BluetoothProfileDescriptorList,classId);
+   //! [Class Uuuid must contain at least 1 entry]
+
+
+   //! [Service name, description and provider]
+   serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceName, tr("heartKinetics Server"));
+   serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceDescription,
+                            tr("heartKinetics Server service description"));
+   serviceInfo.setAttribute(QBluetoothServiceInfo::ServiceProvider, tr("lphys.ulb.ac.be"));
+   //! [Service name, description and provider]
+
+   //! [Service UUID set]
+   serviceInfo.setServiceUuid(QBluetoothUuid(serviceUuid));
+   //! [Service UUID set]
+
+   //! [Service Discoverability]
+   QBluetoothServiceInfo::Sequence publicBrowse;
+   publicBrowse << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::PublicBrowseGroup));
+   serviceInfo.setAttribute(QBluetoothServiceInfo::BrowseGroupList,
+                            publicBrowse);
+   //! [Service Discoverability]
+
+   //! [Protocol descriptor list]
+   QBluetoothServiceInfo::Sequence protocolDescriptorList;
+   QBluetoothServiceInfo::Sequence protocol;
+   protocol << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::L2cap));
+   protocolDescriptorList.append(QVariant::fromValue(protocol));
+   protocol.clear();
+   protocol << QVariant::fromValue(QBluetoothUuid(QBluetoothUuid::Rfcomm))
+            << QVariant::fromValue(quint8(rfcommServer->serverPort()));
+   protocolDescriptorList.append(QVariant::fromValue(protocol));
+   serviceInfo.setAttribute(QBluetoothServiceInfo::ProtocolDescriptorList,
+                            protocolDescriptorList);
+   //! [Protocol descriptor list]
+
+   //! [Register service]
+   serviceInfo.registerService(localAdapterAddress);
+   //! [Register service]
+
+
+   if(serviceInfo.isComplete())
+       qDebug() << "Bluetooth service is complete";
+
+   if(serviceInfo.isRegistered())
+       qDebug() << "Bluetooth service is registered";
 
     //Create ADS1298 daq objects and corresponding threads
     DaqADS1298* myDaqADS1298 = new DaqADS1298;
@@ -85,6 +146,7 @@ Server::Server(QObject *parent)
     myDaqADS1298->moveToThread(myDaqThreadADS1298);
     myDaqThreadADS1298->start(); //Starting thread (not acquisition)
 
+    /*
     //Create MPU6000 daq objects and corresponding threads
     DaqMPU6000* myDaqMPU6000 = new DaqMPU6000;
     QThread* myDaqThreadMPU6000 = new QThread;
@@ -96,6 +158,7 @@ Server::Server(QObject *parent)
     myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
     myDaqMPU6000->moveToThread(myDaqThreadMPU6000);
     myDaqThreadMPU6000->start(); //Starting thread (not acquisition)
+    */
 
 
     //Add to daq list
@@ -109,19 +172,12 @@ Server::Server(QObject *parent)
     }
 
     //Setup interrupt on DRDY pin of ADS1298. Will trigger acquisitions on other daqs as well.
-    QString pThisCallbackStr = QString("0x%1").arg((quintptr)pThisCallback,
-                        QT_POINTER_SIZE * 2, 16, QChar('0'));
-    //qDebug() << "Interrupt on Pin: " + QString::number(myDaqADS1298->getDrdyPin());
-    //qDebug() << "pThisCallback: " + pThisCallbackStr;
     wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData,this) ;
-    //pThisCallbackStr = QString("0x%1").arg((quintptr)pThisCallback,QT_POINTER_SIZE * 2, 16, QChar('0'));
-    //qDebug() << "pThisCallback: " + pThisCallbackStr;
-    //pThisCallbackStr = QString("0x%1").arg((quintptr)this,QT_POINTER_SIZE * 2, 16, QChar('0'));
-    //qDebug() << "this: " + pThisCallbackStr;
 
-    startServer();
-    makeLog();
-    communicate();
+    //For testing, start automatically
+    //processMessage("startStop 00-00-00_00-00-00");
+    //delay(3000);
+    //processMessage("startStop 00-00-00_00-00-00");
 }
 
 void Server::getData(void){
@@ -132,7 +188,6 @@ void Server::getData(void){
     for( int i=0; i<myDaqs.count(); ++i ){
         myDaqs[i]->getData();
     }
-
 }
 
 Server::~Server()
@@ -144,209 +199,99 @@ void Server::getMsgDaq(QString msg){
    qDebug() << msg;
 }
 
-void Server::setTimeout(int seconds){
-
-    //Set timeout on blocking read
-    struct timeval tv;
-    tv.tv_sec = seconds;  /* 15 Secs Timeout */
-    tv.tv_usec = 0;  // Not init'ing this can cause strange errors
-    setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
-
-}
-
 void Server::setDaq(Daq& daqIn, QThread& daqInThread){
     daqs.append(&daqIn);
     daqThreads.append(&daqInThread);
 }
 
-void Server::startServer()
+
+void Server::clientConnected()
 {
+    QBluetoothSocket *socket = rfcommServer->nextPendingConnection();
+    if (!socket)
+        return;
 
-    // create a socket
-    sockfd =  socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-
-    if (sockfd < 0)
-        printWriteLog("ERROR opening socket");
-
-
-    serv_addr.rc_family = AF_BLUETOOTH;
-
-    str2ba(servmacaddr,&serv_addr.rc_bdaddr);
-    serv_addr.rc_channel = (uint8_t) 1;
-
-    if (bind(sockfd, (struct sockaddr *) &serv_addr,
-             sizeof(serv_addr)) < 0)
-        printWriteLog("binding failed ");
-    else
-        printWriteLog("binding successful");
-    printWriteLog("Listening for incoming connection...");
-    listen(sockfd,1);
-
-    clientConnected(sockfd);
-    //setTimeout(secsTimeout);
-}
-
-void Server::restartServer()
-{
-
-    printWriteLog("Closing socket");
-    close(sockfd);
-    close(clientSocket);
-    startServer();
-}
-void Server::makeLog(){
-    oflog.open ("daq.log", std::ofstream::out | std::ofstream::app);
-      oflog << "New log file";
-}
-
-void Server::closeLog(){
-    oflog.close();
-}
-
-void Server::clientDisconnected(const QString &name)
-{
-    //ui->chat->insertPlainText(QString::fromLatin1("%1 has left.\n").arg(name));
-}
-//! [clientConnected clientDisconnected]
-
-//! [connected]
-void Server::connected(const QString &name)
-{
-    //ui->chat->insertPlainText(QString::fromLatin1("Joined chat with %1.\n").arg(name));
-}
-
-//! [showMessage]
-void Server::showMessage(const QString &sender, const QString &message)
-{
-   // ui->chat->insertPlainText(QString::fromLatin1("%1: %2\n").arg(sender, message));
-}
-//! [showMessage]
-
-void Server::printWriteLog(const QString &message){
-   int recvOut;
-   QByteArray ba;
-   ba = message.toUtf8();
-   bufmsg = ba.data();
-   oflog << message.toStdString();
-   qDebug() << "sending [" <<  QString::fromUtf8(bufmsg) << "]";
-   write(clientSocket, bufmsg, msgSize);
-   //qDebug() << "asdf";
-}
-
-QString Server::readSocket(char* buffer, int buffer_size)
-{
-    int recvout;
-
-    bzero(buffer,buffer_size);
-
-    while(true)
-    {
-        const int recvout = recv(clientSocket, buffer, buffer_size, 0);
-        if(recvout == -1 || recvout == 0)
-        {
-            qDebug() << "Client disconnected";
-            return QString::fromLatin1("Client disconnected");
-        }
-        else{
-            qDebug() << "reading [" << QString::fromLatin1(buffer) << "]";
-            return QString::fromLatin1(buffer);
-        }
-    }
-
-}
-
-void Server::getBuffer(Data &x){
-    ++packsIn;
-    if(packsIn == ratioPacks){
-        sendPacket(x);
-        packsIn = 0; //reinit packet counter
-    }
-
-}
-
-void Server::sendPacket(Data &pack){
-   write(clientSocket, (char*)&pack, sizeof(Data));
-}
-void Server::communicate()
-{
-    char buffer[msgSize];
-    //char* buffer;
-
+    connect(socket, SIGNAL(readyRead()), this, SLOT(readSocket()));
+    connect(socket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
+    clientSockets.append(socket);
     QString msg;
+    msg ="Accepted connection. Status: ";
+    if(started)
+        msg = msg + "Running.";
+    else msg = msg + "Waiting.";
 
-    bool kill = false;
-            bool gotTime = false;
-            bool started = false;
-            bool stopped = true;
-
-        while(!kill){
-
-
-            msg = readSocket(buffer,msgSize);
-            if (btClock==msg) {
-                printWriteLog("Waiting for client date/time");
-                msg = readSocket(buffer,msgSize);
-
-                printWriteLog("received client time [" + msg + "]");
-                lastTime=msg;
-                gotTime = true;
-            }
-            else if (btStart==msg) {
-                printWriteLog("received [ " + msg + "]");
-                //msg = readSocket(buffer,msgSize);
-                if(gotTime){
-                    //printWriteLog("Starting acquisition");
-                    fName = "rpiData_" + lastTime + ".bin";
-                    msg = readSocket(buffer,msgSize);
-                    //myFile.open(fName.toUtf8(), std::ios::out|std::ios::binary);
-                    printWriteLog("Starting acquisition. File: " + fName);
-                    emit daqStartContinuous(fName);
-                    started = true;
-                    stopped = false;
-                }
-                else {
-                    printWriteLog("Server hasn't got time. Send it first.");
-                }
-            }
-
-            else if (btStop==msg) {
-                printWriteLog("received [" + msg + "]");
-                if(started){
-                    printWriteLog("Stopping acquisition");
-                    emit daqStopContinuous();
-                    started = false;
-                    stopped = true;
-                    gotTime = false;
-                }
-                else printWriteLog("Acquisition not started");
-            }
-            else if (btKill==msg) {
-                printWriteLog("received [" + msg + "]");
-                if(!stopped){
-                    //printWriteLog("Stopping acquisition");
-                    //daq->stopContinuous();
-                    emit daqStopContinuous();
-                    started = false;
-                    stopped = true;
-                }
-
-                printWriteLog("Killing server");
-                closeLog();
-                //return 0;
-            }
-            else if (btWait==msg) {
-                //printWriteLog("received [" + msg + "]");
-                    printWriteLog("Server waiting");
-            }
-            else{
-                qDebug() << "receiving [" << msg << "]";
-                printWriteLog("received nothing or message unknown, closing connection");
-                restartServer();
-            }
-        }
+    sendMessage(msg);
 
 }
 
+//! [clientDisconnected]
+void Server::clientDisconnected()
+{
+    QBluetoothSocket *socket = qobject_cast<QBluetoothSocket *>(sender());
+    if (!socket)
+        return;
+
+    //emit clientDisconnected(socket->peerName());
+    qDebug() << "client disconnected";
+
+    clientSockets.removeOne(socket);
+
+    //socket->deleteLater();
+}
+
+
+void Server::readSocket()
+{
+    QBluetoothSocket *socket = qobject_cast<QBluetoothSocket *>(sender());
+    if (!socket)
+        return;
+
+    while (socket->canReadLine()) {
+        QByteArray line = socket->readLine().trimmed();
+        QString rcvdMessage = QString::fromUtf8(line.constData() ,  line.length());
+        qDebug() << socket->peerName() + " " + rcvdMessage;
+        processMessage(rcvdMessage);
+    }
+}
+
+
+void Server::sendMessage(const QString &message)
+{
+    qDebug() << "sending " + message;
+    QByteArray text = message.toUtf8() + '\n';
+    foreach (QBluetoothSocket *socket, clientSockets)
+        socket->write(text);
+}
+
+
+void Server::processMessage(const QString& msg)
+{
+
+    if(msg.contains("startStop",Qt::CaseInsensitive) ){
+
+        if(started==false){
+            QRegularExpression rx("(\\d{1,2}-\\d{1,2}-\\d{1,2}_\\d{1,2}-\\d{1,2}-\\d{1,2})");
+            QRegularExpressionMatch match = rx.match(msg);
+            if (match.hasMatch()) {
+                QString matched = match.captured(0);
+                QString msg = "Starting acquisition on " + matched;
+                fName = "rpiData_" + matched;
+                emit daqStartContinuous(fName);
+                sendMessage(msg);
+                started = true;
+                return;
+            }
+        }
+        if(started == true){
+            QString msg = "Stopping acquisition ";
+            sendMessage(msg);
+            emit daqStopContinuous();
+            started = false;
+            return;
+        }
+
+    }
+}
 void Server::stopServer()
 {
     // Unregister service
@@ -357,28 +302,4 @@ void Server::stopServer()
 
     // Close server
 }
-
-//! [sendMessage]
-void Server::sendMessage(const QString &message)
-{
-    QByteArray text = message.toUtf8() + '\n';
-
-    //foreach (QBluetoothSocket *socket, clientSockets)
-        //socket->write(text);
-}
-//! [sendMessage]
-
-//! [clientConnected]
-void Server::clientConnected(int &sockfd)
-{
-    // accept one connection
-    clientSocket = accept(sockfd, (struct sockaddr *)&client_addr, &opt);
-
-    setTimeout(secsTimeout);
-    ba2str( &client_addr.rc_bdaddr, buf );
-
-    printWriteLog("accepted connection");
-}
-//! [clientConnected]
-
 

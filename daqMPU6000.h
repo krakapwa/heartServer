@@ -110,6 +110,7 @@ class DaqMPU6000: public Daq
 {
     Q_OBJECT
 public:
+    DaqMPU6000();
     void setup();
     void setFclk(int);
     void setChan(int);
@@ -118,6 +119,7 @@ public:
     void setMisoPin(int);
     void setNCsPin(int);
     void getData();
+    void appendToFile(DataMPU6000* y);
 
 
 signals:
@@ -133,8 +135,6 @@ private:
     void writeReg(uint8_t address, uint8_t data);
     void sendCmd(uint8_t cmd);
     uint8_t readReg(uint8_t address);
-    static void appendToFile(DataMPU6000 y);
-    static void writeToBuffer(DataMPU6000* y);
     void printRegs();
     int fclk;
     int chan;
@@ -145,6 +145,7 @@ private:
     uint8_t sample_rate_div;
     uint8_t low_pass_filter;
 
+    DataMPU6000* y;
 };
 
 

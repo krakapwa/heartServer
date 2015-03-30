@@ -1,10 +1,5 @@
 ﻿#include <daqMPU6000.h>
 
-static DataMPU6000* y;
-static DataMPU6000* buffer;
-static std::fstream myFile;
-
-
 void DaqMPU6000::setFclk(int fclk){ fclk = fclk;}
 void DaqMPU6000::setChan(int chan){ chan = chan;}
 void DaqMPU6000::setDrdyPin(int drdy){ DRDY = drdy;}
@@ -12,6 +7,12 @@ void DaqMPU6000::setMosiPin(int mosi){ MOSI = mosi;}
 void DaqMPU6000::setMisoPin(int miso){ MISO = miso;}
 void DaqMPU6000::setNCsPin(int ncs){ nCS = ncs;}
 
+
+DaqMPU6000::DaqMPU6000(){
+    qDebug() << "MPU6000 contructor";
+    y = new DataMPU6000();
+    qDebug() << "hi";
+}
 
 void DaqMPU6000::getData(void){
 
@@ -66,7 +67,12 @@ void DaqMPU6000::getData(void){
     y->spiData[8] = tmpSpiDataH[0];
     y->spiData[9] = tmpSpiDataL[0];
 
-    appendToFile(*y);
+    appendToFile(y);
+}
+
+void DaqMPU6000::appendToFile(DataMPU6000* y){
+
+    myFile.write((char*)y->spiData, y->numSerialBytes*sizeof(uint8_t));
 }
 
 void DaqMPU6000::stopContinuous(){
@@ -75,11 +81,15 @@ void DaqMPU6000::stopContinuous(){
 }
 
 void DaqMPU6000::startContinuous(QString fname){
-    std::string fnamePath;
+    QString fnamePath;
     fname = "MPU6000" + fname;
-    fnamePath = rootPath + fname.toStdString();
+    fnamePath = rootPath + fname;
 
-    myFile.open(fnamePath.c_str(), std::ios::out|std::ios::binary);
+    myFile.open(fnamePath.toStdString(), std::ios::in | std::ios::out | std::ios::binary);
+    //myFile.setFileName(fnamePath);
+    //myFile.open(QIODevice::WriteOnly | QIODevice::Append);
+    //outStream.setDevice(&myFile);
+
 }
 
 void DaqMPU6000::writeReg(uint8_t address, uint8_t data)
@@ -189,17 +199,6 @@ void DaqMPU6000::setup ()
     delay(100);
 
     qDebug() << "MPU6000 setup done.";
-}
-
-void DaqMPU6000::appendToFile(DataMPU6000 y){
-
-    myFile.write((char*)&y, sizeof (Data));
-
-}
-
-
-void DaqMPU6000::writeToBuffer(DataMPU6000* y){
-    buffer = y;
 }
 
 void DaqMPU6000::printRegs(){

@@ -1,33 +1,32 @@
 #include "daqADS1298.h"
 
+   static uint8_t tmp[nSerialBytes];
 
 DaqADS1298::DaqADS1298(){
-    qDebug() << "ADS1298 contructor";
     DRDY = ADS1298_DRDY;
-    y = new DataADS1298();
-    buffer = new DataADS1298();
+    //tmpSpiData[nSerialBytes] = {0};
 }
 
 void DaqADS1298::getData(){
 
-    uint8_t tmpSpiData[y->numSerialBytes];
+
     digitalWrite(ADS1298_nCS,LOW);
-    wiringPiSPIDataRW(ADS1298_chan, tmpSpiData ,y->numSerialBytes);
-
+    wiringPiSPIDataRW(ADS1298_chan, tmp ,nSerialBytes);
     digitalWrite(ADS1298_nCS,HIGH);
-    //qDebug() << QString::number(tmpSpiData[3]) + QString::number(tmpSpiData[4]) + QString::number(tmpSpiData[5]) + QString::number(tmpSpiData[6]) + QString::number(tmpSpiData[7]);
-    for(int i=0;i< y->numSerialBytes; ++i){
-       y->spiData[i] = tmpSpiData[i];
-    }
-
-    appendToFile(y);
+    qDebug() << tmp[10];
+    myFile.write ((char*)&tmp, nSerialBytes*sizeof(uint8_t));
 }
 
 void DaqADS1298::startContinuous(QString fname){
-    std::string fnamePath;
-    fnamePath = rootPath + fname.toStdString();
+    QString fnamePath;
+    fnamePath = rootPath + fname;
+    qDebug() << "opening file " + fnamePath;
+    myFile.open(fnamePath.toStdString(), std::ios::out | std::ios::binary);
+    //myFile.setFileName(fnamePath);
+    //myFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    //myFile.open(QIODevice::WriteOnly);
+    //outStream.setDevice(&myFile);
 
-    myFile.open(fnamePath.c_str(), std::ios::out|std::ios::binary);
     digitalWrite(ADS1298_START,HIGH);
     delay(10);
     sendCmd(ADS1298_RDATAC);
@@ -36,6 +35,8 @@ void DaqADS1298::startContinuous(QString fname){
 void DaqADS1298::stopContinuous(){
 
     digitalWrite(ADS1298_START,LOW);
+    delay(1);
+    qDebug() << "Closing file";
     myFile.close();
 }
 
@@ -213,15 +214,6 @@ void DaqADS1298::setup()
     delay(100);
 
     qDebug() << "ADS1298 setup done.";
-}
-
-void DaqADS1298::appendToFile(DataADS1298* y){
-
-    myFile.write((char*)y->spiData, sizeof(uint8_t)*y->numSerialBytes);
-}
-
-void DaqADS1298::writeToBuffer(DataADS1298* y){
-    buffer = y;
 }
 
 void DaqADS1298::printRegs(){

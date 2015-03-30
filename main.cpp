@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
     Server serv;
     //DaqADS1298 daqADS1298;
     //serv.setDaq(daqADS1298);
+    a.exec();
 
     return 0;
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 3.3.1, 2015-03-27T10:41:29. -->
+<!-- Written by QtCreator 3.3.1, 2015-03-30T12:55:00. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -361,10 +361,10 @@
        <value type="QString">/mnt/rasp-pi-rootfs</value>
       </valuelist>
       <valuelist type="QVariantList" key="Qt4ProjectManager.MaemoRunConfiguration.LastDeployedTimes">
-       <value type="QDateTime">2015-03-26T14:53:20</value>
-       <value type="QDateTime">2015-03-27T08:43:02</value>
+       <value type="QDateTime">2015-03-30T12:54:36</value>
+       <value type="QDateTime">2015-03-30T12:54:36</value>
       </valuelist>
-      <value type="bool" key="RemoteLinux.GenericDirectUploadStep.IgnoreMissingFiles">false</value>
+      <value type="bool" key="RemoteLinux.GenericDirectUploadStep.IgnoreMissingFiles">true</value>
       <value type="bool" key="RemoteLinux.GenericDirectUploadStep.Incremental">true</value>
      </valuemap>
      <value type="int" key="ProjectExplorer.BuildStepList.StepsCount">2</value>

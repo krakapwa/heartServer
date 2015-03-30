@@ -12,9 +12,10 @@
 #include <linux/spi/spidev.h>
 #include <sys/ioctl.h>
 #include <stdint.h>
+//#include <QFile>
+#include <data.h>
 #include <fstream>
-
-const std::string serverBtAdr = "00:02:72:C9:1B:25";
+#include <iostream>
 
 class Server;
 
@@ -28,7 +29,7 @@ public:
     ~Daq();
     void virtual setup()=0;
     void run();
-    void setCfgFileName(std::string);
+    void setCfgFileName(QString);
     virtual void getData() = 0;
 
 
@@ -37,14 +38,15 @@ private:
     void setServ(Server&);
 
 protected:
-    std::string rootPath;
+    std::ofstream myFile;
+    QString rootPath;
     QMutex mutex;
     QWaitCondition cond;
     bool quit;
     Server* serv;
     config_t cfg;
     config_setting_t *setting;
-    std::string cfgFileName;
+    QString cfgFileName;
     void loadCfg();
 
 };

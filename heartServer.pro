@@ -23,7 +23,6 @@ HEADERS = \
     daq.h \
     daqMPU6000.h \
     dataADS1298.h \
-    data.h \
     dataMPU6000.h
 
 INCLUDEPATH += /usr/include
