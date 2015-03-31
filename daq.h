@@ -28,7 +28,6 @@ public:
     ~Daq();
     void virtual setup()=0;
     void setCfgFileName(QString);
-    virtual void getData() = 0;
     std::ofstream myFile;
 
 private:

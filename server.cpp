@@ -45,6 +45,9 @@
 
 #include <qbluetoothlocaldevice.h>
 static const QLatin1String serviceUuid("e8e10f95-1a70-4b27-9ccf-02010264e9c7");
+static QList<Daq*> daqs;
+
+
 void* pThisCallback = NULL;
 
 Server::Server(QObject *parent)
@@ -159,9 +162,10 @@ Server::Server(QObject *parent)
 
 
     //Add to daq list
-    setDaq(*myDaqADS1298);
+    //setDaq(*myDaqADS1298);
     //setDaq(*myDaqMPU6000, *myDaqThreadMPU6000);
 
+    /*
     //Setup daqs
     qDebug() << "Setting up daqs";
     for (int i = 0; i < daqs.size(); ++i) {
@@ -170,20 +174,45 @@ Server::Server(QObject *parent)
 
     //Setup interrupt on DRDY pin of ADS1298. Will trigger acquisitions on other daqs as well.
     wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData,this) ;
+    */
+
+
+    //Add to daq list
+    daqs.append(myDaqADS1298);
+
+    //Setup daqs
+    daqs[0]->setup();
+
+    //Setup interrupt on DRDY pin of ADS1298. Will trigger acquisitions on other daqs as well.
+    wiringPiISR(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData) ;
 
 }
+
+static uint8_t bufferADS1298[27];
 
 void Server::getData(void){
-    Server* pThisCallbackCast = static_cast<Server*>(pThisCallback);
 
-    QList<Daq*> myDaqs = pThisCallbackCast->daqs;
-    for( int i=0; i<myDaqs.count(); ++i ){
-        //myDaqs[i]->getData();
-        getWriteData(&(myDaqs[i]->myFile),8, 0, 27);
+    uint8_t tmp[27];
+    //    getWriteData(&(daqs[0]->myFile),8, 0, 27);
+    digitalWrite(8,LOW);
+    wiringPiSPIDataRW(0, tmp ,27);
+    digitalWrite(8,HIGH);
+
+    for( int i=0; i < 27; ++i ){
+       bufferADS1298[i] =  tmp[i];
     }
+
+    daqs[0]->myFile.write((char*)&bufferADS1298, 27*sizeof(uint8_t));
+
+    /*
+    for( int i=0; i<daqs.count(); ++i ){
+        getWriteData(&(daqs[i]->myFile),8, 0, 27);
+    }
+    */
 }
 
-static uint8_t bufferADS1298[27] = {0};
+//uint8_t bufferMPU6000[27];
+/*
 void Server::getWriteData(std::ofstream* file,int ncsPin, int chan, int len){
 
     digitalWrite(ncsPin,LOW);
@@ -192,6 +221,7 @@ void Server::getWriteData(std::ofstream* file,int ncsPin, int chan, int len){
 
     file->write((char*)&bufferADS1298, len*sizeof(uint8_t));
 }
+*/
 
 Server::~Server()
 {
@@ -202,9 +232,11 @@ void Server::getMsgDaq(QString msg){
    qDebug() << msg;
 }
 
+/*
 void Server::setDaq(Daq& daqIn){
     daqs.append(&daqIn);
 }
+*/
 
 void Server::clientConnected()
 {

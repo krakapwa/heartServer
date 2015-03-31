@@ -36,3 +36,4 @@ target.path = /home/pi/heartServer
 INSTALLS += target config
 
 OTHER_FILES += config/configADS1298.txt
+OTHER_FILES += config/configADS1298.txtbcgecg

@@ -65,8 +65,6 @@ public:
     Server(QObject *parent=0);
     Server(Daq& daqIn);
     ~Server();
-    void setDaq(Daq& daqIn);
-    QList<Daq*> daqs;
 
   QList<QBluetoothHostInfo> localAdapters;
   QBluetoothServer *rfcommServer;

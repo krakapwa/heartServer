@@ -30,7 +30,6 @@ public:
     DaqADS1298();
     void setup();
     int getDrdyPin(void);
-    void getData();
 
 signals:
     void sendBuffer(DataADS1298);
