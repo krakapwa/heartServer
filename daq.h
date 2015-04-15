@@ -29,12 +29,14 @@ public:
     void virtual setup()=0;
     void setCfgFileName(QString);
     std::ofstream myFile;
+    int getChan();
 
 private:
 
     void setServ(Server&);
 
 protected:
+    int chan;
     void run();
     QString rootPath;
     QMutex mutex;

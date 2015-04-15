@@ -92,7 +92,6 @@ const uint8_t BIT_I2C_IF_DIS = 0x10;
 
 #define READ_FLAG   0x80
 
-
 // =======================================================================
 // GPIO PINs
 // =======================================================================
@@ -114,13 +113,13 @@ public:
     void setup();
     void setFclk(int);
     void setChan(int);
-    void setDrdyPin(int);
     void setMosiPin(int);
     void setMisoPin(int);
     void setNCsPin(int);
+    void setFsyncPin(int);
+    void setDrdyPin(int);
     void getData();
     void appendToFile(DataMPU6000* y);
-
 
 signals:
     void sendBuffer(DataMPU6000);
@@ -137,11 +136,11 @@ private:
     uint8_t readReg(uint8_t address);
     void printRegs();
     int fclk;
-    int chan;
     int DRDY;
     int nCS;
     int MOSI;
     int MISO;
+    int FSYNC;
     uint8_t sample_rate_div;
     uint8_t low_pass_filter;
 

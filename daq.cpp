@@ -2,6 +2,7 @@
 
 uint8_t tmp2[27];
 
+int Daq::getChan(){return chan;}
 
 Daq::Daq(QObject  *parent)
         : QObject(parent)
@@ -29,6 +30,7 @@ Daq::~Daq()
     mutex.unlock();
     wait();
 }
+
 
 void Daq::loadCfg(){
 

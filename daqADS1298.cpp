@@ -40,7 +40,7 @@ void DaqADS1298::writeReg(uint8_t address, uint8_t data)
 
     digitalWrite(ADS1298_nCS,LOW);
 
-    //delayMicroseconds(1);
+    delay(10);
     wiringPiSPIDataRW(ADS1298_chan, spiDataCmd ,1);
 
     uint8_t spiDataWrite[3];
@@ -48,6 +48,7 @@ void DaqADS1298::writeReg(uint8_t address, uint8_t data)
     spiDataWrite[1] = 0x00;
     spiDataWrite[2] = data;
     wiringPiSPIDataRW(ADS1298_chan, spiDataWrite, 3);
+    delay(10);
     digitalWrite(ADS1298_nCS,HIGH);
 }
 
@@ -57,7 +58,7 @@ void DaqADS1298::sendCmd(uint8_t cmd)
     uint8_t spiDataCmd[1];
     spiDataCmd[0]=cmd;
     digitalWrite(ADS1298_nCS,LOW);
-    //delayMicroseconds(1);
+    delay(10);
     wiringPiSPIDataRW(ADS1298_chan, spiDataCmd ,1);
     delay(10);
     digitalWrite(ADS1298_nCS,HIGH);
@@ -68,6 +69,7 @@ uint8_t DaqADS1298::readReg(uint8_t address)
     sendCmd(ADS1298_SDATAC);
 
     digitalWrite(ADS1298_nCS,LOW);
+    delay(10);
     uint8_t spiDataRead[3];
     spiDataRead[0] = ADS1298_RREG+address;
     spiDataRead[1] = 0x00;
@@ -84,13 +86,12 @@ void DaqADS1298::setup()
 {
     //serv->printWriteLog("Starting ADS1298 setup...") ;
     qDebug() << "Starting ADS1298 setup...";
-    int fclk = 3000000; //2.048MHz (max 20MHz)
-
-    qDebug() <<  "Calling wiringPiSetupSys()";
-    wiringPiSetupSys(); //init SPI pins
+    chan = ADS1298_chan;
+    fclk = 1000000; //2.048MHz (max 20MHz)
 
     int fd;
-    fd=wiringPiSPISetup (ADS1298_chan, fclk); //init SPI pins
+    fd=wiringPiSPISetup(ADS1298_chan, fclk); //init SPI pins
+    //fd=wiringPiSPISetup(1, fclk); //init SPI pins
 
     uint8_t spiMode = SPI_MODE_1;
     qDebug() << "Setting SPI mode to 1";
@@ -103,7 +104,7 @@ void DaqADS1298::setup()
     pinMode(ADS1298_DRDY, INPUT); //ADS1298_DRDY
     pinMode(ADS1298_nRESET, OUTPUT); //_RESET
     pinMode(ADS1298_nCS, OUTPUT);
-    pullUpDnControl (ADS1298_nCS, PUD_OFF);
+    pullUpDnControl (ADS1298_nCS, PUD_UP);
     pullUpDnControl (ADS1298_MOSI, PUD_OFF);
     pullUpDnControl (ADS1298_MISO, PUD_OFF);
     pullUpDnControl (ADS1298_nRESET, PUD_UP);
@@ -196,13 +197,13 @@ void DaqADS1298::setup()
     //Write registers
     qDebug() << "Writing config registers";
     digitalWrite(ADS1298_nCS,LOW);
+    delay(100);
     wiringPiSPIDataRW(ADS1298_chan, spiDataWrite, len);
     digitalWrite(ADS1298_nCS,HIGH);
-    delay(100);
+    delay(50);
 
     qDebug() << "Reading config registers";
     printRegs();
-    delay(100);
 
     qDebug() << "ADS1298 setup done.";
 }
@@ -222,4 +223,8 @@ void DaqADS1298::printRegs(){
 
 int DaqADS1298::getDrdyPin(){
     return DRDY;
+}
+
+int DaqADS1298::getFclk(){
+    return fclk;
 }

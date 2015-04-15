@@ -11,7 +11,7 @@ const uint8_t ADS1298_SDATAC = 0x11;
 const uint8_t ADS1298_RDATA = 0x12;
 
 // =======================================================================
-// GPIO PINs (BCM convention with wiringPiSetupSys)
+// GPIO PINs (BCM convention with wiringPiSetup)
 // =======================================================================
 const int ADS1298_START = 27;
 const int ADS1298_DRDY = 22;
@@ -30,6 +30,7 @@ public:
     DaqADS1298();
     void setup();
     int getDrdyPin(void);
+    int getFclk(void);
 
 signals:
     void sendBuffer(DataADS1298);
@@ -48,6 +49,7 @@ private:
     void writeToBuffer(DataADS1298*);
     void printRegs();
     int DRDY;
+    int fclk; //2.048MHz (max 20MHz)
     DataADS1298* y;
 };
 
