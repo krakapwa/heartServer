@@ -1,6 +1,5 @@
 #include "daqADS1298.h"
 
-
 //static uint8_t tmp[nSerialBytes];
 
 DaqADS1298::DaqADS1298(){
@@ -19,7 +18,7 @@ void DaqADS1298::startContinuous(QString fname){
     //outStream.setDevice(&myFile);
 
     digitalWrite(ADS1298_START,HIGH);
-    delay(10);
+    //delay(10);
     sendCmd(ADS1298_RDATAC);
 }
 
@@ -104,20 +103,23 @@ void DaqADS1298::setup()
     pinMode(ADS1298_DRDY, INPUT); //ADS1298_DRDY
     pinMode(ADS1298_nRESET, OUTPUT); //_RESET
     pinMode(ADS1298_nCS, OUTPUT);
-    pullUpDnControl (ADS1298_nCS, PUD_UP);
+    pinMode(ADS1298_MOSI, OUTPUT);
+    pinMode(ADS1298_MISO, INPUT);
+
+    pullUpDnControl (ADS1298_nCS, PUD_OFF);
     pullUpDnControl (ADS1298_MOSI, PUD_OFF);
     pullUpDnControl (ADS1298_MISO, PUD_OFF);
-    pullUpDnControl (ADS1298_nRESET, PUD_UP);
+    pullUpDnControl (ADS1298_nRESET, PUD_OFF);
 
     digitalWrite(ADS1298_START,LOW);
     //digitalWrite(ADS1298_nCS,LOW);
     // Power-up sequence
     qDebug() << "Power-up sequence";
     //digitalWrite(ADS1298_CLKSEL, HIGH);
-    digitalWrite(ADS1298_nRESET,HIGH);
-    delay(10);
+    //digitalWrite(ADS1298_nRESET,HIGH);
+    //delay(10);
     digitalWrite(ADS1298_nRESET,LOW);
-    delay(1000);
+    delay(3);
     digitalWrite(ADS1298_nRESET,HIGH);
 
     // ADS1298_SDATAC (stop read data continuous mode) default mode

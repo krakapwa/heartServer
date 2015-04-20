@@ -1,0 +1,28 @@
+registers:
+{
+        CONFIG1 = 0x06;
+        CONFIG2 = 0x10;
+        CONFIG3 = 0xDD;
+        LOFF = 0x03;
+        CH1set = 0x10;
+	CH2set = 0x00;
+	CH3set = 0x00;
+        CH4set = 0x00;
+        CH5set = 0x00;
+        CH6set = 0x00;
+        CH7set = 0x00;
+        CH8set = 0x10;
+        RLD_SENSP = 0x06;
+        RLD_SENSN = 0x06;
+        LOFF_SENSP = 0x06;
+        LOFF_SENSN = 0x06;
+        LOFF_FLIP = 0x06;
+	LOFF_STATP = 0x00;
+	LOFF_STATN = 0x00;
+	GPIO = 0x00;
+	PACE = 0x00;
+        RESP = 0xF0;
+        CONFIG4 = 0x22; //00 for continuous, 08 for single shot
+        WCT1 = 0x0A;
+        WCT2 = 0xE3;
+};

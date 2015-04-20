@@ -53,6 +53,7 @@
 #include <qbluetoothserver.h>
 #include <QRegularExpression>
 #include "data.h"
+#include <unistd.h>
 
 QT_USE_NAMESPACE
 
