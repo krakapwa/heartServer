@@ -174,10 +174,12 @@ Server::Server(QObject *parent)
     //Setup interrupt on DRDY pin of ADS1298. Will trigger acquisitions on other daqs as well.
     wiringPiISR(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData) ;
 
+    /*
     delay(100);
     emit daqStartContinuous("lol.bin");
     delay(5000);
     emit daqStopContinuous();
+    */
 
 }
 
@@ -362,11 +364,12 @@ void Server::processMessage(const QString& msg)
 {
 
     if(msg.contains("startStop",Qt::CaseInsensitive) ){
-
+        qDebug() << "got startStop command";
         if(started==false){
-            QRegularExpression rx("(\\d{1,2}-\\d{1,2}-\\d{1,2}_\\d{1,2}-\\d{1,2}-\\d{1,2})");
+            QRegularExpression rx("(\\d{1,2}-\\d{1,2}-\\d{1,4}_\\d{1,2}-\\d{1,2}-\\d{1,2})");
             QRegularExpressionMatch match = rx.match(msg);
             if (match.hasMatch()) {
+                qDebug() << "will start";
                 QString matched = match.captured(0);
                 QString msg = "Starting acquisition on " + matched;
                 fName = "rpiData_" + matched;
@@ -377,7 +380,8 @@ void Server::processMessage(const QString& msg)
             }
         }
         if(started == true){
-            QString msg = "Stopping acquisition ";
+            qDebug() << "will stop";
+            QString msg = "Stopping acquisition";
             sendMessage(msg);
             emit daqStopContinuous();
             started = false;
