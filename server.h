@@ -66,6 +66,7 @@ public:
     Server(QObject *parent=0);
     Server(Daq& daqIn);
     ~Server();
+    void getDataADS1298();
 
   QList<QBluetoothHostInfo> localAdapters;
   QBluetoothServer *rfcommServer;
@@ -73,9 +74,11 @@ public:
 
 private:
     void sendMessage(const QString &message);
+    void sendData(quint8[], int len);
     void showMessage(const QString &sender, const QString &message);
     void connected(const QString &name);
-    static void getData();
+    //static void getData();
+    static void getData2();
     static void getWriteData(std::ofstream *, int, int, int);
 
     void startServer();
@@ -105,6 +108,15 @@ private:
     bool started;
 
     QList<QBluetoothSocket *> clientSockets;
+
+    QByteArray type;
+    QByteArray byteArrayIn;
+    QDataStream* datastream;
+
+    quint8 bufferADS1298[27];
+    QByteArray bufferADS1298ar;
+    uint8_t bufferMPU6000H[1];
+    uint8_t bufferMPU6000L[1];
 
 
 private slots:

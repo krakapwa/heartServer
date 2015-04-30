@@ -46,6 +46,7 @@
 #include <qbluetoothlocaldevice.h>
 static const QLatin1String serviceUuid("e8e10f95-1a70-4b27-9ccf-02010264e9c7");
 static QList<Daq*> daqs;
+static const QString escChar = "\n";
 
 void* pThisCallback = NULL;
 
@@ -55,6 +56,8 @@ Server::Server(QObject *parent)
 {
 
     started = false;
+
+    datastream = new QDataStream(&byteArrayIn,QIODevice::WriteOnly);
 
     //Testing QBluetooth
  localAdapters = QBluetoothLocalDevice::allDevices();
@@ -172,7 +175,9 @@ Server::Server(QObject *parent)
     //daqs[1]->setup();
 
     //Setup interrupt on DRDY pin of ADS1298. Will trigger acquisitions on other daqs as well.
-    wiringPiISR(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData) ;
+    //wiringPiISR(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData) ;
+
+    wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData2,this) ;
 
     /*
     delay(100);
@@ -181,12 +186,42 @@ Server::Server(QObject *parent)
     emit daqStopContinuous();
     */
 
+    //quint8 test[27] = {0};
+    //qDebug() << QString::number(sizeof(test));
+
 }
 
-static uint8_t bufferADS1298[27];
-static uint8_t bufferMPU6000H[1];
-static uint8_t bufferMPU6000L[1];
 
+void Server::getData2(void){
+
+    Server * p = static_cast<Server *>(pThisCallback);
+    p->getDataADS1298();
+}
+
+
+void Server::getDataADS1298(){
+
+    //int chan = daqs[0]
+    uint8_t tmp[27] = {0};
+    //    getWriteData(&(daqs[0]->myFile),8, 0, 27);
+    digitalWrite(8,LOW);
+    //delayMicroseconds(5);
+    wiringPiSPIDataRW(0, tmp ,27);
+    //delay(1);
+    digitalWrite(8,HIGH);
+
+
+    for( int i=0; i < 27; ++i ){
+       bufferADS1298[i] =  tmp[i];
+    }
+
+    //qDebug() << QString::number(bufferADS1298.size());
+    daqs[0]->myFile.write((char*)&bufferADS1298, 27*sizeof(quint8));
+    //bufferADS1298ar = QByteArray::fromRawData((char*)bufferADS1298,27*sizeof(qint8));
+    sendData(bufferADS1298,27);
+}
+
+/*
 void Server::getData(void){
 
     //int chan = daqs[0]
@@ -205,7 +240,6 @@ void Server::getData(void){
 
     daqs[0]->myFile.write((char*)&bufferADS1298, 27*sizeof(uint8_t));
 
-/*
     //MPU6000
     uint8_t tmpSpiDataH[1];
     uint8_t tmpSpiDataL[1] = {0};
@@ -270,9 +304,9 @@ void Server::getData(void){
     bufferMPU6000L[0] = tmpSpiDataL[0];
     daqs[1]->myFile.write((char*)&bufferMPU6000H, 1*sizeof(uint8_t));
     daqs[1]->myFile.write((char*)&bufferMPU6000L, 1*sizeof(uint8_t));
-    */
 
 }
+*/
 
 //uint8_t bufferMPU6000[27];
 /*
@@ -311,12 +345,18 @@ void Server::clientConnected()
     connect(socket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
     clientSockets.append(socket);
     QString msg;
-    msg ="Accepted connection. Status: ";
+    //msg ="Accepted connection. Status: ";
     if(started)
         msg = msg + "Running.";
     else msg = msg + "Waiting.";
 
-    sendMessage(msg);
+    /*
+    quint8 data[27] = {0};
+    for(int i = 0; i<27;++i){
+        data[i] = 0x0C;
+    }
+    sendData(data,27);
+    */
 
 }
 
@@ -354,11 +394,41 @@ void Server::readSocket()
 void Server::sendMessage(const QString &message)
 {
     qDebug() << "sending " + message;
-    QByteArray text = message.toUtf8() + '\n';
+    QByteArray text;
+    text +=QByteArray::fromHex("BBBB");
+    text += message.toUtf8() + '\n';
     foreach (QBluetoothSocket *socket, clientSockets)
         socket->write(text);
 }
 
+struct packOut
+{
+   char  type[1];
+   char  data[sizeof(uint8_t)*27];
+};
+
+void Server::sendData(quint8 data[], int len)
+{
+
+    datastream->device()->seek(0);
+    type = QByteArray::fromHex("AAAA");
+    //QByteArray byteArrayIn;
+    datastream->setVersion(QDataStream::Qt_5_4);
+    datastream->writeRawData(type,2);
+
+    for(int i = 0; i<len;++i){
+        *datastream << data[i];
+    }
+    *datastream << '\n';
+
+    qDebug() << QString::number(byteArrayIn.size());
+    foreach (QBluetoothSocket *socket, clientSockets)
+        socket->write(byteArrayIn);
+
+    //datastream->device()->reset();
+
+    //qDebug() << byteArrayIn.size();
+}
 
 void Server::processMessage(const QString& msg)
 {
