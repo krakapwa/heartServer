@@ -155,9 +155,13 @@ Server::Server(QObject *parent)
     QObject::connect(this, SIGNAL(daqStopContinuous()),
              myDaqMPU6000, SLOT(stopContinuous()));
     myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
-    myDaqMPU6000->setFclk(myDaqADS1298->getFclk()); //Acquisition triggered on ADS1298 DRDY
+    myDaqMPU6000->setFclk(100000); //Acquisition triggered on ADS1298 DRDY
+    //myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
     myDaqMPU6000->setNCsPin(7);
+    myDaqMPU6000->setMosiPin(myDaqADS1298->getMosiPin());
+    myDaqMPU6000->setMisoPin(myDaqADS1298->getMisoPin());
     myDaqMPU6000->setFsyncPin(24);
+    myDaqMPU6000->setSclkPin(myDaqADS1298->getSclkPin());
     myDaqMPU6000->setChan(0); //Acquisition triggered on ADS1298 DRDY
 
     //Add to daq list
@@ -167,17 +171,18 @@ Server::Server(QObject *parent)
     qDebug() <<  "Calling wiringPiSetupSys()";
     wiringPiSetupSys(); //init SPI pins
 
-
-    //pullUpDnControl (7, PUD_UP);
-
     //Setup daqs
     daqs[0]->setup();
-    //daqs[1]->setup();
+    qDebug() << "ADS1298 sampling freq: " + QString::number(daqs[0]->getFs());
+    daqs[1]->setup();
 
-    //Setup interrupt on DRDY pin of ADS1298. Will trigger acquisitions on other daqs as well.
-    //wiringPiISR(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData) ;
+    /*
+    digitalWrite(7,LOW);
+    delay(1000);
+    digitalWrite(7,HIGH);
+    */
 
-    wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData2,this) ;
+    //wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData2,this) ;
 
     /*
     delay(100);
@@ -188,6 +193,8 @@ Server::Server(QObject *parent)
 
     //quint8 test[27] = {0};
     //qDebug() << QString::number(sizeof(test));
+
+    sampleRatio = 4;
 
 }
 
@@ -350,13 +357,11 @@ void Server::clientConnected()
         msg = msg + "Running.";
     else msg = msg + "Waiting.";
 
-    /*
     quint8 data[27] = {0};
     for(int i = 0; i<27;++i){
-        data[i] = 0x0C;
+        data[i] = i;
     }
     sendData(data,27);
-    */
 
 }
 
@@ -397,6 +402,7 @@ void Server::sendMessage(const QString &message)
     QByteArray text;
     text +=QByteArray::fromHex("BBBB");
     text += message.toUtf8() + '\n';
+    qDebug() << "sending(hex) " + text.toHex();
     foreach (QBluetoothSocket *socket, clientSockets)
         socket->write(text);
 }
@@ -410,24 +416,25 @@ struct packOut
 void Server::sendData(quint8 data[], int len)
 {
 
-    datastream->device()->seek(0);
-    type = QByteArray::fromHex("AAAA");
-    //QByteArray byteArrayIn;
-    datastream->setVersion(QDataStream::Qt_5_4);
-    datastream->writeRawData(type,2);
+    if(sampleCount < 4) {
+        datastream->device()->seek(0);
+        type = QByteArray::fromHex("AAAA");
+        datastream->setVersion(QDataStream::Qt_5_4);
+        datastream->writeRawData(type,2);
 
-    for(int i = 0; i<len;++i){
+        for(int i = 0; i<len;++i){
         *datastream << data[i];
-    }
-    *datastream << '\n';
+        }
+        *datastream << '\n';
 
-    qDebug() << QString::number(byteArrayIn.size());
-    foreach (QBluetoothSocket *socket, clientSockets)
+        //qDebug() << QString::number(byteArrayIn.size());
+        foreach (QBluetoothSocket *socket, clientSockets)
         socket->write(byteArrayIn);
-
-    //datastream->device()->reset();
-
-    //qDebug() << byteArrayIn.size();
+        sampleCount++;
+    }
+    else{
+        sampleCount = 0;
+    }
 }
 
 void Server::processMessage(const QString& msg)

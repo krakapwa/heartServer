@@ -116,6 +116,7 @@ public:
     void setMosiPin(int);
     void setMisoPin(int);
     void setNCsPin(int);
+    void setSclkPin(int);
     void setFsyncPin(int);
     void setDrdyPin(int);
     void getData();
@@ -138,6 +139,7 @@ private:
     int fclk;
     int DRDY;
     int nCS;
+    int SCLK;
     int MOSI;
     int MISO;
     int FSYNC;

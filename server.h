@@ -112,6 +112,8 @@ private:
     QByteArray type;
     QByteArray byteArrayIn;
     QDataStream* datastream;
+    int sampleCount; //keeps track of sent samples for downsampling
+    int sampleRatio; //Ratio of acquired data samples to send
 
     quint8 bufferADS1298[27];
     QByteArray bufferADS1298ar;

@@ -51,3 +51,7 @@ void Daq::loadCfg(){
     //setting = config_lookup(&cfg, "registers");
 
 }
+
+int Daq::getFs(){
+   return fs;
+}

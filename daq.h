@@ -30,6 +30,7 @@ public:
     void setCfgFileName(QString);
     std::ofstream myFile;
     int getChan();
+    int getFs();
 
 private:
 
@@ -47,6 +48,7 @@ protected:
     config_setting_t *setting;
     QString cfgFileName;
     void loadCfg();
+    int fs;
 
 };
 

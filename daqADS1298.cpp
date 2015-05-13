@@ -194,7 +194,11 @@ void DaqADS1298::setup()
         spiDataWrite[26] = cfgtmp;
     }
 
-    config_destroy(&cfg);
+
+    //config_destroy(&cfg);
+
+    //Save Fs
+    setFsFromCfg();
 
     //Write registers
     qDebug() << "Writing config registers";
@@ -229,4 +233,52 @@ int DaqADS1298::getDrdyPin(){
 
 int DaqADS1298::getFclk(){
     return fclk;
+}
+
+int DaqADS1298::getMisoPin(){
+    return ADS1298_MISO;
+}
+
+int DaqADS1298::getMosiPin(){
+    return ADS1298_MOSI;
+}
+
+int DaqADS1298::getSclkPin(){
+    return ADS1298_sclk;
+}
+
+void DaqADS1298::setFsFromCfg(){
+    //Save Fs
+    int cfgtmp;
+    int reg[CHAR_BIT];
+    config_setting_lookup_int(setting, "CONFIG1", &cfgtmp);
+    QByteArray cfg1 = QByteArray::number(cfgtmp,10);
+    char *data = cfg1.data();
+    qDebug() << "Save Fs";
+    for (int i = 0; i < CHAR_BIT; ++i) {
+      reg[i] = (*data >> i) & 1;
+      qDebug() << QString::number(reg[i]);
+    }
+
+    int nibble = reg[0] + 2*reg[1] + 4*reg[2];
+    if(reg[7]){ //High resolution mode
+        if(nibble==0) fs=32000;
+        if(nibble==1) fs=16000;
+        if(nibble==2) fs=8000;
+        if(nibble==3) fs=4000;
+        if(nibble==4) fs=2000;
+        if(nibble==5) fs=1000;
+        if(nibble==6) fs=500;
+    }
+    else{
+
+        if(nibble==0) fs=16000;
+        if(nibble==1) fs=8000;
+        if(nibble==2) fs=4000;
+        if(nibble==3) fs=2000;
+        if(nibble==4) fs=1000;
+        if(nibble==5) fs=500;
+        if(nibble==6) fs=250;
+    }
+
 }

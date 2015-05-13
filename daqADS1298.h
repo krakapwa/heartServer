@@ -20,6 +20,7 @@ const int ADS1298_nCS = 8;
 const int ADS1298_MOSI = 10;
 const int ADS1298_MISO = 9;
 const int ADS1298_chan = 0;
+const int ADS1298_sclk = 11;
 
 QT_USE_NAMESPACE
 
@@ -30,7 +31,11 @@ public:
     DaqADS1298();
     void setup();
     int getDrdyPin(void);
+    int getMisoPin();
+    int getMosiPin();
+    int getSclkPin();
     int getFclk(void);
+    void setFsFromCfg();
 
 signals:
     void sendBuffer(DataADS1298);

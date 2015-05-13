@@ -1,8 +1,9 @@
 ﻿#include <daqMPU6000.h>
 
-void DaqMPU6000::setFclk(int fclk){ fclk = fclk;}
+void DaqMPU6000::setFclk(int arg_fclk){ fclk = arg_fclk;}
 void DaqMPU6000::setChan(int arg_chan){ chan = arg_chan;}
 void DaqMPU6000::setDrdyPin(int drdy){ DRDY = drdy;}
+void DaqMPU6000::setSclkPin(int sclk){ SCLK = sclk;}
 void DaqMPU6000::setMosiPin(int mosi){ MOSI = mosi;}
 void DaqMPU6000::setMisoPin(int miso){ MISO = miso;}
 void DaqMPU6000::setNCsPin(int ncs){ nCS = ncs;}
@@ -76,9 +77,14 @@ void DaqMPU6000::sendCmd(uint8_t cmd)
 
 void DaqMPU6000::setup ()
 {
+    //test
+    delay(1000);
+
     uint8_t res;
     //serv->printWriteLog("Starting MPU6000 setup...") ;
     qDebug() << "Starting MPU6000 setup...";
+    qDebug() << "chan: " + QString::number(chan);
+    qDebug() << "fclk: " + QString::number(fclk);
 
     int fd;
     fd=wiringPiSPISetup(chan, fclk); //init SPI pins
@@ -92,44 +98,57 @@ void DaqMPU6000::setup ()
     qDebug() << "Setting up pins";
     // Setup gpio pin modes for SPI
     pinMode(nCS, OUTPUT);
-    pullUpDnControl (nCS, PUD_UP);
-    pullUpDnControl (MOSI, PUD_OFF);
-    pullUpDnControl (MISO, PUD_OFF);
+    //pinMode(SCLK, OUTPUT);
+    pullUpDnControl (nCS, PUD_OFF);
+    pullUpDnControl (SCLK, PUD_OFF);
+    pullUpDnControl (MOSI, PUD_DOWN);
+    pullUpDnControl (MISO, PUD_DOWN);
 
     // Power-up sequence
     qDebug() << "Power-up sequence";
 
     //FIRST OF ALL DISABLE I2C
+    qDebug() << "Disable I2C";
     writeReg(MPUREG_USER_CTRL,BIT_I2C_IF_DIS);
 
     //RESET CHIP
+    qDebug() << "Reset Chip";
+    writeReg(MPUREG_USER_CTRL,BIT_I2C_IF_DIS);
     writeReg(MPUREG_PWR_MGMT_1,BIT_H_RESET);
     delay(150);
 
     //WAKE UP AND SET GYROZ CLOCK
+    qDebug() << "Wake up and set gyroz clock";
     writeReg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
 
     //DISABLE I2C
+    qDebug() << "Disable I2C";
     writeReg(MPUREG_USER_CTRL,BIT_I2C_IF_DIS);
 
+    qDebug() << "WHOAMI?";
+    delay(1000);
     //WHO AM I?
     res = readReg(MPUREG_WHOAMI);
     if(res<100){
         qDebug() << "Couldn't receive whoami: " + QString::number(res);
-        return;
+        //return;
     }
     else{
         qDebug() << "whoami result: " + QString::number(res);
         //qDebug() << "Received whoami";
     }
+    delay(1000);
 
     //SET SAMPLE RATE TO 1kHz
+    qDebug() << "Set sample rate";
     writeReg(MPUREG_SMPLRT_DIV,0x07);
 
     // DISABLE LPF
+    qDebug() << "Disable LPF";
     writeReg(MPUREG_CONFIG,0x07);
 
     //DISABLE INTERRUPTS
+    qDebug() << "Disable Interrupts";
     writeReg(MPUREG_INT_ENABLE,0x00);
 
     qDebug() << "MPU6000 setup done.";
