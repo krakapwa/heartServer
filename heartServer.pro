@@ -30,10 +30,14 @@ INCLUDEPATH += /usr/include/bluetooth
 LIBS = -L/mnt/rasp-pi-rootfs/usr/lib -lwiringPi -lpthread -lbluetooth -lconfig
 
 config.path = /home/pi/heartServer
-config.files = /home/krakapwa/Documents/rpi2/heartServer/config/configADS1298.txt
+config.files = /home/krakapwa/Documents/rpi/heartServer/config/configADS1298.txt
+
+syncScript.path = /home/pi/heartServer
+syncScript.files = /home/krakapwa/Documents/rpi/heartServer/syncUsb
 
 target.path = /home/pi/heartServer
-INSTALLS += target config
+INSTALLS += target config syncScript
 
 OTHER_FILES += config/configADS1298.txt
 OTHER_FILES += config/configADS1298.txtbcgecg
+OTHER_FILES += syncUsb

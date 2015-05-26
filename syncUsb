@@ -1,0 +1,16 @@
+#!/bin/bash
+
+IFS=$'\n'
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+for mtabline in `cat /etc/mtab`; do 
+  device=`echo $mtabline | cut -f 1 -d ' '`
+  # echo $device
+  udevline=`udevadm info -q path -n $device 2>&1 |grep usb` 
+  if [ $? == 0 ] ; then
+    devpath=`echo $mtabline | cut -f 2 -d ' '`
+    echo "devpath: $devpath"
+    rsync -rlptDv $DIR/rpiData* $devpath/rpiData/
+    
+  fi
+done

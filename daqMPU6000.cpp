@@ -127,15 +127,18 @@ void DaqMPU6000::setup ()
 
     qDebug() << "WHOAMI?";
     delay(1000);
-    //WHO AM I?
-    res = readReg(MPUREG_WHOAMI);
-    if(res<100){
+    for(int i=0;i<1;++i){
+      delay(1);
+        //WHO AM I?
+        res = readReg(MPUREG_WHOAMI);
+        if(res<100){
         qDebug() << "Couldn't receive whoami: " + QString::number(res);
         //return;
-    }
-    else{
+        }
+        else{
         qDebug() << "whoami result: " + QString::number(res);
         //qDebug() << "Received whoami";
+        }
     }
     delay(1000);
 

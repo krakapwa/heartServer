@@ -54,6 +54,8 @@
 #include <QRegularExpression>
 #include "data.h"
 #include <unistd.h>
+#include <QProcess>
+#include <QString>
 
 QT_USE_NAMESPACE
 
@@ -119,6 +121,7 @@ private:
     QByteArray bufferADS1298ar;
     uint8_t bufferMPU6000H[1];
     uint8_t bufferMPU6000L[1];
+    QProcess *syncUsb;
 
 
 private slots:
@@ -126,6 +129,7 @@ private slots:
     void clientConnected();
     void clientDisconnected();
     void readSocket();
+    void onReadyReadProcess();
 
 signals:
     void messageReceived(const QString &sender, const QString &message);

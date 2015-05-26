@@ -55,6 +55,11 @@ Server::Server(QObject *parent)
 
 {
 
+    syncUsb = new QProcess();
+    syncUsb->setProcessChannelMode(QProcess::MergedChannels);
+    QObject::connect(syncUsb,SIGNAL(readyRead()),this,SLOT(onReadyReadProcess()));
+
+
     started = false;
 
     datastream = new QDataStream(&byteArrayIn,QIODevice::WriteOnly);
@@ -155,8 +160,8 @@ Server::Server(QObject *parent)
     QObject::connect(this, SIGNAL(daqStopContinuous()),
              myDaqMPU6000, SLOT(stopContinuous()));
     myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
-    myDaqMPU6000->setFclk(100000); //Acquisition triggered on ADS1298 DRDY
     //myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
+    myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
     myDaqMPU6000->setNCsPin(7);
     myDaqMPU6000->setMosiPin(myDaqADS1298->getMosiPin());
     myDaqMPU6000->setMisoPin(myDaqADS1298->getMisoPin());
@@ -182,7 +187,7 @@ Server::Server(QObject *parent)
     digitalWrite(7,HIGH);
     */
 
-    //wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData2,this) ;
+    wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData2,this) ;
 
     /*
     delay(100);
@@ -342,6 +347,12 @@ void Server::setDaq(Daq& daqIn){
 }
 */
 
+void Server::onReadyReadProcess(){
+    //qDebug() << "Reading:" << syncUsb->readAllStandardOutput();
+
+    sendMessage(QString::fromUtf8(syncUsb->readAllStandardOutput()));
+}
+
 void Server::clientConnected()
 {
     QBluetoothSocket *socket = rfcommServer->nextPendingConnection();
@@ -465,6 +476,11 @@ void Server::processMessage(const QString& msg)
             return;
         }
 
+    }
+    if(msg.contains("sync",Qt::CaseInsensitive) ){
+
+        qDebug() << "got sync command";
+        syncUsb->start("/bin/bash", QStringList() << "/home/pi/heartServer/syncUsb");
     }
 }
 void Server::stopServer()
