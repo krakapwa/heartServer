@@ -97,6 +97,8 @@ void DaqADS1298::setup()
     // Change to SPI mode 1 on write (default is 0)
     ioctl (fd, SPI_IOC_WR_MODE, &spiMode);
 
+
+    //wiringPiSetupSys();
     qDebug() << "Setting up pins";
     // Setup gpio pin modes for SPI
     pinMode(ADS1298_START, OUTPUT); //ADS1298_START
@@ -110,6 +112,7 @@ void DaqADS1298::setup()
     pullUpDnControl (ADS1298_MOSI, PUD_OFF);
     pullUpDnControl (ADS1298_MISO, PUD_OFF);
     pullUpDnControl (ADS1298_nRESET, PUD_OFF);
+    pullUpDnControl (ADS1298_DRDY, PUD_UP);
 
     digitalWrite(ADS1298_START,LOW);
     //digitalWrite(ADS1298_nCS,LOW);

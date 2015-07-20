@@ -66,9 +66,9 @@ Server::Server(QObject *parent)
 
     //Testing QBluetooth
  localAdapters = QBluetoothLocalDevice::allDevices();
- QBluetoothAddress localAdapterAddress = localAdapters.at(0).address();
+ QBluetoothAddress localAdapterAddress = localAdapters.value(0).address();
  qDebug() << "Address of local bluetooth adapter:" + localAdapterAddress.toString();
- QBluetoothLocalDevice localAdapter(localAdapters.at(0).address());
+ QBluetoothLocalDevice localAdapter(localAdapters.value(0).address());
  QBluetoothAddress clientAddress("60:D8:19:AF:11:04") ;
  localAdapter.pairingStatus(clientAddress);
  qDebug() << "PairingStatus:" +  QString::number(localAdapter.pairingStatus(clientAddress));
@@ -138,7 +138,6 @@ Server::Server(QObject *parent)
    serviceInfo.registerService(localAdapterAddress);
    //! [Register service]
 
-
    if(serviceInfo.isComplete())
        qDebug() << "Bluetooth service is complete";
 
@@ -174,7 +173,7 @@ Server::Server(QObject *parent)
     daqs.append(myDaqMPU6000);
 
     qDebug() <<  "Calling wiringPiSetupSys()";
-    wiringPiSetupSys(); //init SPI pins
+    wiringPiSetupGpio(); //init SPI pins
 
     //Setup daqs
     daqs[0]->setup();
@@ -189,12 +188,11 @@ Server::Server(QObject *parent)
 
     wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData2,this) ;
 
-    /*
     delay(100);
     emit daqStartContinuous("lol.bin");
-    delay(5000);
-    emit daqStopContinuous();
-    */
+    pullUpDnControl (ADS1298_DRDY, PUD_DOWN);
+    //delay(5000);
+    //emit daqStopContinuous();
 
     //quint8 test[27] = {0};
     //qDebug() << QString::number(sizeof(test));
@@ -205,6 +203,7 @@ Server::Server(QObject *parent)
 
 
 void Server::getData2(void){
+    qDebug() << "getData2";
 
     Server * p = static_cast<Server *>(pThisCallback);
     p->getDataADS1298();
@@ -213,6 +212,7 @@ void Server::getData2(void){
 
 void Server::getDataADS1298(){
 
+    qDebug() << "getDataADS1298";
     //int chan = daqs[0]
     uint8_t tmp[27] = {0};
     //    getWriteData(&(daqs[0]->myFile),8, 0, 27);

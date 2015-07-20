@@ -1,3 +1,5 @@
+
+//ECG
 registers:
 {
         CONFIG1 = 0x06;

@@ -7,8 +7,8 @@
 #include <libconfig.h>
 #include <QDebug>
 #include <QThread>
-#include <wiringPi/wiringPi.h>
-#include <wiringPi/wiringPiSPI.h>
+#include "wiringPi/wiringPi.h"
+#include "wiringPi/wiringPiSPI.h"
 #include <linux/spi/spidev.h>
 #include <sys/ioctl.h>
 #include <stdint.h>

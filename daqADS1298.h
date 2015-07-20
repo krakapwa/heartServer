@@ -11,7 +11,7 @@ const uint8_t ADS1298_SDATAC = 0x11;
 const uint8_t ADS1298_RDATA = 0x12;
 
 // =======================================================================
-// GPIO PINs (BCM convention with wiringPiSetup)
+// GPIO PINs (BCM convention with wiringPiSetupSys)
 // =======================================================================
 const int ADS1298_START = 27;
 const int ADS1298_DRDY = 22;

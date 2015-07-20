@@ -56,6 +56,7 @@
 #include <unistd.h>
 #include <QProcess>
 #include <QString>
+#include <QDataStream>
 
 QT_USE_NAMESPACE
 

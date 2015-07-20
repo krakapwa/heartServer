@@ -26,18 +26,24 @@ HEADERS = \
     dataMPU6000.h
 
 INCLUDEPATH += /usr/include
-INCLUDEPATH += /usr/include/bluetooth
-LIBS = -L/mnt/rasp-pi-rootfs/usr/lib -lwiringPi -lpthread -lbluetooth -lconfig
-
-config.path = /home/pi/heartServer
-config.files = /home/krakapwa/Documents/rpi/heartServer/config/configADS1298.txt
-
-syncScript.path = /home/pi/heartServer
-syncScript.files = /home/krakapwa/Documents/rpi/heartServer/syncUsb
+LIBS = -I/usr/local/include -L/usr/local/lib -lwiringPi -L/mnt/rasp-pi-rootfs/usr/lib -lconfig
 
 target.path = /home/pi/heartServer
-INSTALLS += target config syncScript
 
-OTHER_FILES += config/configADS1298.txt
-OTHER_FILES += config/configADS1298.txtbcgecg
-OTHER_FILES += syncUsb
+EXTRA = \
+        $${PWD}/config/configADS1298.txt \
+        $${PWD}/config/configADS1298.txt.bcgecg \
+        $${PWD}/exportPins \
+        $${PWD}/syncUsb
+
+for(FILE,EXTRA){
+QMAKE_POST_LINK += $$quote(cp $${FILE} $${OUT_PWD}$$escape_expand(\n\t))
+}
+
+extra.files = $${EXTRA}
+extra.path = /home/pi/heartServer
+
+INSTALLS += target extra
+
+DISTFILES += \
+    exportPins
