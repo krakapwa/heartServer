@@ -137,6 +137,7 @@ signals:
     void clientConnected(const QString &name);
     void clientDisconnected(const QString &name);
     void daqStartContinuous(QString);
+    void daqStartSingleShot(QString);
     void daqStopContinuous();
 
 };

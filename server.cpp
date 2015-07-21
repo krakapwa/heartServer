@@ -54,6 +54,8 @@ Server::Server(QObject *parent)
     : QObject(parent)
 
 {
+    qDebug() <<  "Calling wiringPiSetupGpio()";
+    wiringPiSetupGpio(); //init SPI pins
 
     syncUsb = new QProcess();
     syncUsb->setProcessChannelMode(QProcess::MergedChannels);
@@ -68,6 +70,7 @@ Server::Server(QObject *parent)
  localAdapters = QBluetoothLocalDevice::allDevices();
  QBluetoothAddress localAdapterAddress = localAdapters.value(0).address();
  qDebug() << "Address of local bluetooth adapter:" + localAdapterAddress.toString();
+ qDebug() << "Test";
  QBluetoothLocalDevice localAdapter(localAdapters.value(0).address());
  QBluetoothAddress clientAddress("60:D8:19:AF:11:04") ;
  localAdapter.pairingStatus(clientAddress);
@@ -138,6 +141,7 @@ Server::Server(QObject *parent)
    serviceInfo.registerService(localAdapterAddress);
    //! [Register service]
 
+
    if(serviceInfo.isComplete())
        qDebug() << "Bluetooth service is complete";
 
@@ -172,13 +176,10 @@ Server::Server(QObject *parent)
     daqs.append(myDaqADS1298);
     daqs.append(myDaqMPU6000);
 
-    qDebug() <<  "Calling wiringPiSetupSys()";
-    wiringPiSetupGpio(); //init SPI pins
-
     //Setup daqs
     daqs[0]->setup();
     qDebug() << "ADS1298 sampling freq: " + QString::number(daqs[0]->getFs());
-    daqs[1]->setup();
+    //daqs[1]->setup();
 
     /*
     digitalWrite(7,LOW);
@@ -189,11 +190,11 @@ Server::Server(QObject *parent)
     wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData2,this) ;
 
     delay(100);
+    //emit daqStartSingleShot("lol.bin");
     emit daqStartContinuous("lol.bin");
-    pullUpDnControl (ADS1298_DRDY, PUD_DOWN);
-    //delay(5000);
-    //emit daqStopContinuous();
-
+    delay(200);
+    //pullUpDnControl(ADS1298_DRDY,PUD_DOWN);
+    emit daqStopContinuous();
     //quint8 test[27] = {0};
     //qDebug() << QString::number(sizeof(test));
 
@@ -203,8 +204,6 @@ Server::Server(QObject *parent)
 
 
 void Server::getData2(void){
-    qDebug() << "getData2";
-
     Server * p = static_cast<Server *>(pThisCallback);
     p->getDataADS1298();
 }
@@ -212,25 +211,25 @@ void Server::getData2(void){
 
 void Server::getDataADS1298(){
 
-    qDebug() << "getDataADS1298";
     //int chan = daqs[0]
     uint8_t tmp[27] = {0};
     //    getWriteData(&(daqs[0]->myFile),8, 0, 27);
-    digitalWrite(8,LOW);
-    //delayMicroseconds(5);
-    wiringPiSPIDataRW(0, tmp ,27);
-    //delay(1);
-    digitalWrite(8,HIGH);
+    digitalWrite(ADS1298_nCS,LOW);
+    delayMicroseconds(1);
+    wiringPiSPIDataRW(ADS1298_chan, tmp ,ADS1298_Nbytes);
+    delayMicroseconds(1);
+    digitalWrite(ADS1298_nCS,HIGH);
 
 
-    for( int i=0; i < 27; ++i ){
+    for( int i=0; i < ADS1298_Nbytes; ++i ){
        bufferADS1298[i] =  tmp[i];
     }
 
     //qDebug() << QString::number(bufferADS1298.size());
-    daqs[0]->myFile.write((char*)&bufferADS1298, 27*sizeof(quint8));
+    qDebug() << QString::number(tmp[20]);
+    daqs[0]->myFile.write((char*)&bufferADS1298, ADS1298_Nbytes*sizeof(quint8));
     //bufferADS1298ar = QByteArray::fromRawData((char*)bufferADS1298,27*sizeof(qint8));
-    sendData(bufferADS1298,27);
+    sendData(bufferADS1298,ADS1298_Nbytes);
 }
 
 /*
@@ -395,8 +394,10 @@ void Server::clientDisconnected()
 void Server::readSocket()
 {
     QBluetoothSocket *socket = qobject_cast<QBluetoothSocket *>(sender());
+    /*
     if (!socket)
         return;
+        */
 
     while (socket->canReadLine()) {
         QByteArray line = socket->readLine().trimmed();
@@ -430,7 +431,7 @@ void Server::sendData(quint8 data[], int len)
     if(sampleCount < 4) {
         datastream->device()->seek(0);
         type = QByteArray::fromHex("AAAA");
-        datastream->setVersion(QDataStream::Qt_5_4);
+        datastream->setVersion(QDataStream::Qt_5_3);
         datastream->writeRawData(type,2);
 
         for(int i = 0; i<len;++i){
@@ -480,7 +481,12 @@ void Server::processMessage(const QString& msg)
     if(msg.contains("sync",Qt::CaseInsensitive) ){
 
         qDebug() << "got sync command";
-        syncUsb->start("/bin/bash", QStringList() << "/home/pi/heartServer/syncUsb");
+        if(started==false){
+            syncUsb->start("/bin/bash", QStringList() << "/home/pi/heartServer/syncUsb");
+        }
+        else{
+            sendMessage("There is an acquisition running. Click start/stop before syncing.");
+        }
     }
 }
 void Server::stopServer()

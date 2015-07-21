@@ -104,13 +104,13 @@ void DaqADS1298::setup()
     pinMode(ADS1298_START, OUTPUT); //ADS1298_START
     pinMode(ADS1298_DRDY, INPUT); //ADS1298_DRDY
     pinMode(ADS1298_nRESET, OUTPUT); //_RESET
-    pinMode(ADS1298_nCS, OUTPUT);
-    pinMode(ADS1298_MOSI, OUTPUT);
-    pinMode(ADS1298_MISO, INPUT);
+    //pinMode(ADS1298_nCS, OUTPUT);
+    //pinMode(ADS1298_MOSI, OUTPUT);
+    //pinMode(ADS1298_MISO, INPUT);
 
-    pullUpDnControl (ADS1298_nCS, PUD_OFF);
-    pullUpDnControl (ADS1298_MOSI, PUD_OFF);
-    pullUpDnControl (ADS1298_MISO, PUD_OFF);
+    //pullUpDnControl (ADS1298_nCS, PUD_OFF);
+    //pullUpDnControl (ADS1298_MOSI, PUD_OFF);
+    //pullUpDnControl (ADS1298_MISO, PUD_OFF);
     pullUpDnControl (ADS1298_nRESET, PUD_OFF);
     pullUpDnControl (ADS1298_DRDY, PUD_UP);
 

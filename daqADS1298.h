@@ -3,6 +3,9 @@
 #include <dataADS1298.h>
 #include <daq.h>
 
+//Global
+const int ADS1298_Nbytes = 27;
+
 // register commands
 const uint8_t ADS1298_WREG = 0x40;
 const uint8_t ADS1298_RREG  = 0x20;
@@ -11,7 +14,7 @@ const uint8_t ADS1298_SDATAC = 0x11;
 const uint8_t ADS1298_RDATA = 0x12;
 
 // =======================================================================
-// GPIO PINs (BCM convention with wiringPiSetupSys)
+// GPIO PINs (BCM convention with wiringPiSetup)
 // =======================================================================
 const int ADS1298_START = 27;
 const int ADS1298_DRDY = 22;
