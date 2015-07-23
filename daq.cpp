@@ -7,19 +7,13 @@ int Daq::getChan(){return chan;}
 Daq::Daq(QObject  *parent)
         : QObject(parent)
 {
-    rootPath = "/home/pi/heartServer/";
     quit = false;
 }
 
 void Daq::setCfgFileName(QString arg_cfgFileName){
-    cfgFileName = rootPath + arg_cfgFileName;
     qDebug() << "Setting config file name";
-    qDebug() << cfgFileName;
-}
-
-void Daq::setServ(Server& servIn){
-
-    serv  = &servIn;
+    qDebug() << arg_cfgFileName;
+    cfgFileName = arg_cfgFileName;
 }
 
 Daq::~Daq()

@@ -4,6 +4,8 @@
 #include <daq.h>
 #include <dataMPU6000.h>
 
+const int MPU6000_Nbytes = 12;
+
 // register commands
 const uint8_t MPUREG_XG_OFFS_TC = 0x00;
 const uint8_t MPUREG_YG_OFFS_TC = 0x01;
@@ -119,16 +121,11 @@ public:
     void setSclkPin(int);
     void setFsyncPin(int);
     void setDrdyPin(int);
-    void getData();
-    void appendToFile(DataMPU6000* y);
+    uint8_t * getData();
+    int getNbytes();
 
 signals:
-    void sendBuffer(DataMPU6000);
     void sendMessageServer(QString);
-
-private slots:
-    void startContinuous(QString);
-    void stopContinuous();
 
 private:
     std::string cfgFileName;

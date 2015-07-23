@@ -7,18 +7,9 @@ DaqADS1298::DaqADS1298(){
     //tmpSpiData[nSerialBytes] = {0};
 }
 
-void DaqADS1298::startContinuous(QString fname){
-    QString fnamePath;
-    fnamePath = rootPath + fname;
-    qDebug() << "opening file " + fnamePath;
-    myFile.open(fnamePath.toStdString(), std::ios::out | std::ios::binary);
-    //myFile.setFileName(fnamePath);
-    //myFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
-    //myFile.open(QIODevice::WriteOnly);
-    //outStream.setDevice(&myFile);
+void DaqADS1298::startContinuous(){
 
     digitalWrite(ADS1298_START,HIGH);
-    //delay(10);
     sendCmd(ADS1298_RDATAC);
 }
 
@@ -26,8 +17,6 @@ void DaqADS1298::stopContinuous(){
 
     digitalWrite(ADS1298_START,LOW);
     delay(1);
-    qDebug() << "Closing file";
-    myFile.close();
 }
 
 void DaqADS1298::writeReg(uint8_t address, uint8_t data)
@@ -90,7 +79,7 @@ void DaqADS1298::setup()
 
     int fd;
     fd=wiringPiSPISetup(ADS1298_chan, fclk); //init SPI pins
-    //fd=wiringPiSPISetup(1, fclk); //init SPI pins
+    qDebug() << "wiringPiSPISetup on chan " + QString::number(ADS1298_chan) +  ": " + QString::number(fd);
 
     uint8_t spiMode = SPI_MODE_1;
     qDebug() << "Setting SPI mode to 1";
@@ -250,6 +239,10 @@ int DaqADS1298::getSclkPin(){
     return ADS1298_sclk;
 }
 
+int DaqADS1298::getNbytes(){
+    return ADS1298_Nbytes;
+}
+
 void DaqADS1298::setFsFromCfg(){
     //Save Fs
     int cfgtmp;
@@ -257,10 +250,10 @@ void DaqADS1298::setFsFromCfg(){
     config_setting_lookup_int(setting, "CONFIG1", &cfgtmp);
     QByteArray cfg1 = QByteArray::number(cfgtmp,10);
     char *data = cfg1.data();
-    qDebug() << "Save Fs";
+    //qDebug() << "Save Fs";
     for (int i = 0; i < CHAR_BIT; ++i) {
       reg[i] = (*data >> i) & 1;
-      qDebug() << QString::number(reg[i]);
+      //qDebug() << QString::number(reg[i]);
     }
 
     int nibble = reg[0] + 2*reg[1] + 4*reg[2];
@@ -284,4 +277,29 @@ void DaqADS1298::setFsFromCfg(){
         if(nibble==6) fs=250;
     }
 
+}
+
+
+    static uint8_t bufferADS1298[ADS1298_Nbytes];
+uint8_t* DaqADS1298::getData(){
+    //qDebug() << "getData ADS1298";
+    //int chan = daqs[0]
+    uint8_t tmp[ADS1298_Nbytes] = {0};
+    //    getWriteData(&(daqs[0]->myFile),8, 0, 27);
+    digitalWrite(ADS1298_nCS,LOW);
+    wiringPiSPIDataRW(ADS1298_chan, tmp ,ADS1298_Nbytes);
+    digitalWrite(ADS1298_nCS,HIGH);
+
+
+    for( int i=0; i < ADS1298_Nbytes; ++i ){
+       bufferADS1298[i] =  tmp[i];
+    }
+
+    return (unsigned char*)&bufferADS1298;
+
+    //qDebug() << QString::number(bufferADS1298.size());
+    //qDebug() << QString::number(tmp[20]);
+            //daqs[0]->myFile.write((char*)&bufferADS1298, ADS1298_Nbytes*sizeof(quint8));
+    //bufferADS1298ar = QByteArray::fromRawData((char*)bufferADS1298,27*sizeof(qint8));
+    //sendData(bufferADS1298,ADS1298_Nbytes);
 }

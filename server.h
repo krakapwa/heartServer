@@ -37,6 +37,8 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
+#ifndef SERVER_H
+#define SERVER_H
 
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
@@ -46,7 +48,6 @@
 #include <QDebug>
 #include <QTimer>
 #include <QList>
-#include <daq.h>
 #include <QThread>
 #include <qbluetoothserviceinfo.h>
 #include <qbluetoothhostinfo.h>
@@ -57,9 +58,13 @@
 #include <QProcess>
 #include <QString>
 #include <QDataStream>
+#include "daq.h"
 
 QT_USE_NAMESPACE
 
+class Daq;
+
+const int RDYLED = 21;
 
 class Server: public QObject
 {
@@ -70,24 +75,33 @@ public:
     Server(Daq& daqIn);
     ~Server();
     void getDataADS1298();
+    std::ofstream myFile;
 
+    QList<Daq*> daqs;
   QList<QBluetoothHostInfo> localAdapters;
   QBluetoothServer *rfcommServer;
   QBluetoothServiceInfo serviceInfo;
 
 private:
+    QString rootPath;
+    void setupRdyLed(int pin);
+    void rdyLedOn(int pin);
+    void rdyLedOff(int pin);
     void sendMessage(const QString &message);
     void sendData(quint8[], int len);
     void showMessage(const QString &sender, const QString &message);
     void connected(const QString &name);
     //static void getData();
-    static void getData2();
+    static void getData();
     static void getWriteData(std::ofstream *, int, int, int);
 
     void startServer();
     void restartServer();
     void stopServer();
     void processMessage(const QString&);
+
+    void startContinuous(QString);
+    void stopContinuous();
 
     int clientSocket;
     int secsTimeout;
@@ -136,11 +150,13 @@ signals:
     void messageReceived(const QString &sender, const QString &message);
     void clientConnected(const QString &name);
     void clientDisconnected(const QString &name);
-    void daqStartContinuous(QString);
-    void daqStartSingleShot(QString);
+    void daqStartContinuous();
+    void daqStartSingleShot();
     void daqStopContinuous();
 
 };
 //! [declaration]
 
 //const int bufsize = 1024;
+
+#endif

@@ -45,7 +45,6 @@
 
 #include <qbluetoothlocaldevice.h>
 static const QLatin1String serviceUuid("e8e10f95-1a70-4b27-9ccf-02010264e9c7");
-static QList<Daq*> daqs;
 static const QString escChar = "\n";
 
 void* pThisCallback = NULL;
@@ -57,6 +56,10 @@ Server::Server(QObject *parent)
     qDebug() <<  "Calling wiringPiSetupGpio()";
     wiringPiSetupGpio(); //init SPI pins
 
+    setupRdyLed(RDYLED);
+   rdyLedOff(RDYLED);
+
+    rootPath = "/home/pi/heartServer/";
     syncUsb = new QProcess();
     syncUsb->setProcessChannelMode(QProcess::MergedChannels);
     QObject::connect(syncUsb,SIGNAL(readyRead()),this,SLOT(onReadyReadProcess()));
@@ -150,11 +153,11 @@ Server::Server(QObject *parent)
 
     //Create ADS1298 daq objects and corresponding threads
     DaqADS1298* myDaqADS1298 = new DaqADS1298;
-    QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
-            myDaqADS1298, SLOT(startContinuous(QString)));
+    QObject::connect(this, SIGNAL(daqStartContinuous()),
+            myDaqADS1298, SLOT(startContinuous()));
     QObject::connect(this, SIGNAL(daqStopContinuous()),
              myDaqADS1298, SLOT(stopContinuous()));
-    myDaqADS1298->setCfgFileName("configADS1298.txt"); //Acquisition triggered on ADS1298 DRDY
+    myDaqADS1298->setCfgFileName(rootPath + "configADS1298.txt"); //Acquisition triggered on ADS1298 DRDY
 
     //Create MPU6000 daq objects and corresponding threads
     DaqMPU6000* myDaqMPU6000 = new DaqMPU6000;
@@ -162,7 +165,7 @@ Server::Server(QObject *parent)
             myDaqMPU6000, SLOT(startContinuous(QString)));
     QObject::connect(this, SIGNAL(daqStopContinuous()),
              myDaqMPU6000, SLOT(stopContinuous()));
-    myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
+    //myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
     //myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
     myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
     myDaqMPU6000->setNCsPin(7);
@@ -170,16 +173,16 @@ Server::Server(QObject *parent)
     myDaqMPU6000->setMisoPin(myDaqADS1298->getMisoPin());
     myDaqMPU6000->setFsyncPin(24);
     myDaqMPU6000->setSclkPin(myDaqADS1298->getSclkPin());
-    myDaqMPU6000->setChan(0); //Acquisition triggered on ADS1298 DRDY
+    myDaqMPU6000->setChan(1);
 
     //Add to daq list
     daqs.append(myDaqADS1298);
     daqs.append(myDaqMPU6000);
 
     //Setup daqs
+    //qDebug() << "ADS1298 sampling freq: " + QString::number(daqs[0]->getFs());
     daqs[0]->setup();
-    qDebug() << "ADS1298 sampling freq: " + QString::number(daqs[0]->getFs());
-    //daqs[1]->setup();
+    daqs[1]->setup();
 
     /*
     digitalWrite(7,LOW);
@@ -187,14 +190,16 @@ Server::Server(QObject *parent)
     digitalWrite(7,HIGH);
     */
 
-    wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData2,this) ;
+    wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData,this);
+    pThisCallback = this;
 
-    delay(100);
+    rdyLedOn(RDYLED);
+
+    delay(3000);
     //emit daqStartSingleShot("lol.bin");
-    emit daqStartContinuous("lol.bin");
-    delay(200);
-    //pullUpDnControl(ADS1298_DRDY,PUD_DOWN);
-    emit daqStopContinuous();
+    startContinuous("lol.bin");
+    delay(2000);
+    stopContinuous();
     //quint8 test[27] = {0};
     //qDebug() << QString::number(sizeof(test));
 
@@ -202,35 +207,37 @@ Server::Server(QObject *parent)
 
 }
 
+void Server::startContinuous(QString fname){
 
-void Server::getData2(void){
+    QString fnamePath;
+    fnamePath = rootPath + fname;
+    qDebug() << "opening file " + fnamePath;
+    myFile.open(fnamePath.toStdString(), std::ios::out | std::ios::binary);
+    emit daqStartContinuous();
+}
+
+void Server::stopContinuous(){
+    emit daqStopContinuous();
+    delay(10);
+    qDebug() << "Closing file";
+    myFile.close();
+}
+
+void Server::getData(void){
     Server * p = static_cast<Server *>(pThisCallback);
-    p->getDataADS1298();
-}
-
-
-void Server::getDataADS1298(){
-
-    //int chan = daqs[0]
-    uint8_t tmp[27] = {0};
-    //    getWriteData(&(daqs[0]->myFile),8, 0, 27);
-    digitalWrite(ADS1298_nCS,LOW);
-    delayMicroseconds(1);
-    wiringPiSPIDataRW(ADS1298_chan, tmp ,ADS1298_Nbytes);
-    delayMicroseconds(1);
-    digitalWrite(ADS1298_nCS,HIGH);
-
-
-    for( int i=0; i < ADS1298_Nbytes; ++i ){
-       bufferADS1298[i] =  tmp[i];
+    uint8_t * buff;
+    for(int i=0; i < p->daqs.size();++i){
+        //qDebug() << "getData";
+        buff = p->daqs[i]->getData();
+        //qDebug() << "buff[0]=" + QString::number(buff[0]);
+        //qDebug() << "buff[1]=" + QString::number(buff[1]);
+        //qDebug() << "getData daq " + QString::number(i) + " " +QString::number(*buff) ;
+        p->myFile.write((char*)buff, p->daqs[i]->getNbytes()*sizeof(uint8_t));
+        //qDebug() << QString::number(p->daqs[i]->getNbytes()*sizeof(uint8_t));
     }
-
-    //qDebug() << QString::number(bufferADS1298.size());
-    qDebug() << QString::number(tmp[20]);
-    daqs[0]->myFile.write((char*)&bufferADS1298, ADS1298_Nbytes*sizeof(quint8));
-    //bufferADS1298ar = QByteArray::fromRawData((char*)bufferADS1298,27*sizeof(qint8));
-    sendData(bufferADS1298,ADS1298_Nbytes);
 }
+
+
 
 /*
 void Server::getData(void){
@@ -251,70 +258,6 @@ void Server::getData(void){
 
     daqs[0]->myFile.write((char*)&bufferADS1298, 27*sizeof(uint8_t));
 
-    //MPU6000
-    uint8_t tmpSpiDataH[1];
-    uint8_t tmpSpiDataL[1] = {0};
-    int chan = daqs[1]->getChan();
-
-    //x axis accel
-    tmpSpiDataH[0] = MPUREG_ACCEL_XOUT_H | READ_FLAG;
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataL , 1);
-    bufferMPU6000H[0] = tmpSpiDataH[0];
-    bufferMPU6000L[0] = tmpSpiDataL[0];
-    daqs[1]->myFile.write((char*)&bufferMPU6000H, 1*sizeof(uint8_t));
-    daqs[1]->myFile.write((char*)&bufferMPU6000L, 1*sizeof(uint8_t));
-
-    //y axis accel
-    tmpSpiDataH[0] = MPUREG_ACCEL_YOUT_H | READ_FLAG;
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataL , 1);
-    bufferMPU6000H[0] = tmpSpiDataH[0];
-    bufferMPU6000L[0] = tmpSpiDataL[0];
-    daqs[1]->myFile.write((char*)&bufferMPU6000H, 1*sizeof(uint8_t));
-    daqs[1]->myFile.write((char*)&bufferMPU6000L, 1*sizeof(uint8_t));
-
-    //z axis accel
-    tmpSpiDataH[0] = MPUREG_ACCEL_ZOUT_H | READ_FLAG;
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataL , 1);
-    bufferMPU6000H[0] = tmpSpiDataH[0];
-    bufferMPU6000L[0] = tmpSpiDataL[0];
-    daqs[1]->myFile.write((char*)&bufferMPU6000H, 1*sizeof(uint8_t));
-    daqs[1]->myFile.write((char*)&bufferMPU6000L, 1*sizeof(uint8_t));
-
-    //x axis rot
-    tmpSpiDataH[0] = MPUREG_GYRO_XOUT_H | READ_FLAG;
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataL , 1);
-    bufferMPU6000H[0] = tmpSpiDataH[0];
-    bufferMPU6000L[0] = tmpSpiDataL[0];
-    daqs[1]->myFile.write((char*)&bufferMPU6000H, 1*sizeof(uint8_t));
-    daqs[1]->myFile.write((char*)&bufferMPU6000L, 1*sizeof(uint8_t));
-
-    //y axis rot
-    tmpSpiDataH[0] = MPUREG_GYRO_YOUT_H | READ_FLAG;
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataL , 1);
-    bufferMPU6000H[0] = tmpSpiDataH[0];
-    bufferMPU6000L[0] = tmpSpiDataL[0];
-    daqs[1]->myFile.write((char*)&bufferMPU6000H, 1*sizeof(uint8_t));
-    daqs[1]->myFile.write((char*)&bufferMPU6000L, 1*sizeof(uint8_t));
-
-    //z axis rot
-    tmpSpiDataH[0] = MPUREG_GYRO_ZOUT_H | READ_FLAG;
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataH , 1);
-    wiringPiSPIDataRW(chan, tmpSpiDataL , 1);
-    bufferMPU6000H[0] = tmpSpiDataH[0];
-    bufferMPU6000L[0] = tmpSpiDataL[0];
-    daqs[1]->myFile.write((char*)&bufferMPU6000H, 1*sizeof(uint8_t));
-    daqs[1]->myFile.write((char*)&bufferMPU6000L, 1*sizeof(uint8_t));
 
 }
 */
@@ -462,7 +405,7 @@ void Server::processMessage(const QString& msg)
                 QString matched = match.captured(0);
                 QString msg = "Starting acquisition on " + matched;
                 fName = "rpiData_" + matched;
-                emit daqStartContinuous(fName);
+                startContinuous(fName);
                 sendMessage(msg);
                 started = true;
                 return;
@@ -500,3 +443,16 @@ void Server::stopServer()
     // Close server
 }
 
+
+void Server::setupRdyLed(int pin){
+    pinMode(pin, OUTPUT); //ADS1298_START
+    pullUpDnControl (pin, PUD_OFF);
+}
+
+void Server::rdyLedOn(int pin){
+    digitalWrite(pin,HIGH);
+}
+
+void Server::rdyLedOff(int pin){
+    digitalWrite(pin,LOW);
+}

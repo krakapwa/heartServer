@@ -14,31 +14,57 @@ DaqMPU6000::DaqMPU6000(){
     y = new DataMPU6000();
 }
 
-void DaqMPU6000::getData(void){
 
-    appendToFile(y);
+int DaqMPU6000::getNbytes(){
+    return MPU6000_Nbytes;
 }
 
-void DaqMPU6000::appendToFile(DataMPU6000* y){
+static uint8_t buff[MPU6000_Nbytes];
+uint8_t* DaqMPU6000::getData(void){
 
-    myFile.write((char*)y->spiData, y->numSerialBytes*sizeof(uint8_t));
-}
+    //qDebug() << "getData MPU6000";
 
-void DaqMPU6000::stopContinuous(){
+    //MPU6000
+    uint8_t tmpSpiDataH[1] = {0};
+    uint8_t tmpSpiDataL[1] = {0};
 
-    myFile.close();
-}
+    //x axis accel
+    tmpSpiDataH[0] =  readReg(MPUREG_ACCEL_XOUT_H );
+    tmpSpiDataL[0] =  readReg(MPUREG_ACCEL_XOUT_L );
+    buff[0] = tmpSpiDataH[0];
+    buff[1] = tmpSpiDataL[0];
 
-void DaqMPU6000::startContinuous(QString fname){
-    QString fnamePath;
-    fname = "MPU6000" + fname;
-    fnamePath = rootPath + fname;
+    //y axis accel
+    tmpSpiDataH[0] =  readReg(MPUREG_ACCEL_YOUT_H );
+    tmpSpiDataL[0] =  readReg(MPUREG_ACCEL_YOUT_L );
+    buff[2] = tmpSpiDataH[0];
+    buff[3] = tmpSpiDataL[0];
 
-    myFile.open(fnamePath.toStdString(), std::ios::in | std::ios::out | std::ios::binary);
-    //myFile.setFileName(fnamePath);
-    //myFile.open(QIODevice::WriteOnly | QIODevice::Append);
-    //outStream.setDevice(&myFile);
+    //z axis accel
+    tmpSpiDataH[0] =  readReg(MPUREG_ACCEL_ZOUT_H );
+    tmpSpiDataL[0] =  readReg(MPUREG_ACCEL_ZOUT_L );
+    buff[4] = tmpSpiDataH[0];
+    buff[5] = tmpSpiDataL[0];
 
+    //x axis rot
+    tmpSpiDataH[0] =  readReg(MPUREG_GYRO_XOUT_H );
+    tmpSpiDataL[0] =  readReg(MPUREG_GYRO_XOUT_L );
+    buff[6] = tmpSpiDataH[0];
+    buff[7] = tmpSpiDataL[0];
+
+    //y axis rot
+    tmpSpiDataH[0] =  readReg(MPUREG_GYRO_YOUT_H );
+    tmpSpiDataL[0] =  readReg(MPUREG_GYRO_YOUT_L );
+    buff[8] = tmpSpiDataH[0];
+    buff[9] = tmpSpiDataL[0];
+
+    //z axis rot
+    tmpSpiDataH[0] =  readReg(MPUREG_GYRO_ZOUT_H );
+    tmpSpiDataL[0] =  readReg(MPUREG_GYRO_ZOUT_L );
+    buff[10] = tmpSpiDataH[0];
+    buff[11] = tmpSpiDataL[0];
+
+    return (unsigned char*)&buff;
 }
 
 void DaqMPU6000::writeReg(uint8_t address, uint8_t data)
@@ -90,19 +116,20 @@ void DaqMPU6000::setup ()
     fd=wiringPiSPISetup(chan, fclk); //init SPI pins
     qDebug() << "wiringPiSPISetup on chan " + QString::number(chan) +  ": " + QString::number(fd);
 
+    /*
     uint8_t spiMode = SPI_MODE_3; // Data captured on falling edge
     qDebug() << "Setting SPI mode to 3";
-    // Change to SPI mode 0 on write (default is 0)
     ioctl (fd, SPI_IOC_WR_MODE, &spiMode);
 
+    */
     qDebug() << "Setting up pins";
     // Setup gpio pin modes for SPI
-    pinMode(nCS, OUTPUT);
+    //pinMode(nCS, OUTPUT);
     //pinMode(SCLK, OUTPUT);
-    pullUpDnControl (nCS, PUD_OFF);
-    pullUpDnControl (SCLK, PUD_OFF);
-    pullUpDnControl (MOSI, PUD_DOWN);
-    pullUpDnControl (MISO, PUD_DOWN);
+    //pullUpDnControl (nCS, PUD_OFF);
+    //pullUpDnControl (SCLK, PUD_OFF);
+    //pullUpDnControl (MOSI, PUD_DOWN);
+    //pullUpDnControl (MISO, PUD_DOWN);
 
     // Power-up sequence
     qDebug() << "Power-up sequence";
@@ -119,11 +146,7 @@ void DaqMPU6000::setup ()
 
     //WAKE UP AND SET GYROZ CLOCK
     qDebug() << "Wake up and set gyroz clock";
-    writeReg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
-
-    //DISABLE I2C
-    qDebug() << "Disable I2C";
-    writeReg(MPUREG_USER_CTRL,BIT_I2C_IF_DIS);
+    writeReg(MPUREG_PWR_MGMT_1,0x00);
 
     qDebug() << "WHOAMI?";
     delay(1000);
@@ -140,7 +163,7 @@ void DaqMPU6000::setup ()
         //qDebug() << "Received whoami";
         }
     }
-    delay(1000);
+    //delay(1000);
 
     //SET SAMPLE RATE TO 1kHz
     qDebug() << "Set sample rate";
@@ -148,11 +171,28 @@ void DaqMPU6000::setup ()
 
     // DISABLE LPF
     qDebug() << "Disable LPF";
-    writeReg(MPUREG_CONFIG,0x07);
+    //writeReg(MPUREG_CONFIG,0x07);
+    writeReg(MPUREG_CONFIG,0x00);
+
+    // Gyro scale 1000º/s
+    writeReg(MPUREG_GYRO_CONFIG, BITS_FS_1000DPS);
+
+    // Accel scele 2g (g=8192)
+    writeReg(MPUREG_ACCEL_CONFIG, BITS_FS_2G);
 
     //DISABLE INTERRUPTS
     qDebug() << "Disable Interrupts";
     writeReg(MPUREG_INT_ENABLE,0x00);
+
+    // Read LPF reg
+    qDebug() << "LPF value:";
+    uint8_t lpf;
+    lpf = readReg(MPUREG_CONFIG);
+    qDebug() << QString::number(lpf);
+
+    //FIRST OF ALL DISABLE I2C
+    qDebug() << "Disable I2C";
+    writeReg(MPUREG_USER_CTRL,BIT_I2C_IF_DIS);
 
     qDebug() << "MPU6000 setup done.";
 }

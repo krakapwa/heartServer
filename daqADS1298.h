@@ -4,7 +4,7 @@
 #include <daq.h>
 
 //Global
-const int ADS1298_Nbytes = 27;
+const int ADS1298_Nbytes = 6; //3 header bytes + 1 channel
 
 // register commands
 const uint8_t ADS1298_WREG = 0x40;
@@ -38,7 +38,9 @@ public:
     int getMosiPin();
     int getSclkPin();
     int getFclk(void);
+    uint8_t *getData();
     void setFsFromCfg();
+    int getNbytes();
 
 signals:
     void sendBuffer(DataADS1298);
@@ -46,7 +48,7 @@ signals:
     void sendMessageServer(QString);
 
 private slots:
-    void startContinuous(QString);
+    void startContinuous();
     void stopContinuous();
 
 private:

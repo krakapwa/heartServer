@@ -15,9 +15,7 @@
 #include <data.h>
 #include <fstream>
 #include <iostream>
-
-class Server;
-
+#include "server.h"
 
 class Daq: public QObject
 {
@@ -26,24 +24,19 @@ class Daq: public QObject
 public:
     Daq(QObject *parent = 0);
     ~Daq();
-    void virtual setup()=0;
+    virtual void setup()=0;
+    virtual uint8_t * getData()=0;
     void setCfgFileName(QString);
-    std::ofstream myFile;
     int getChan();
     int getFs();
-
-private:
-
-    void setServ(Server&);
+    virtual int getNbytes() = 0;
 
 protected:
     int chan;
     void run();
-    QString rootPath;
     QMutex mutex;
     QWaitCondition cond;
     bool quit;
-    Server* serv;
     config_t cfg;
     config_setting_t *setting;
     QString cfgFileName;
