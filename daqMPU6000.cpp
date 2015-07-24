@@ -25,44 +25,29 @@ uint8_t* DaqMPU6000::getData(void){
     //qDebug() << "getData MPU6000";
 
     //MPU6000
-    uint8_t tmpSpiDataH[1] = {0};
-    uint8_t tmpSpiDataL[1] = {0};
+    uint8_t tmpSpiData[15];
+    tmpSpiData[0] = MPUREG_ACCEL_XOUT_H | READ_FLAG;
+    //qDebug() << tmpSpiData[0];
 
-    //x axis accel
-    tmpSpiDataH[0] =  readReg(MPUREG_ACCEL_XOUT_H );
-    tmpSpiDataL[0] =  readReg(MPUREG_ACCEL_XOUT_L );
-    buff[0] = tmpSpiDataH[0];
-    buff[1] = tmpSpiDataL[0];
+    digitalWrite(nCS,LOW);
+    wiringPiSPIDataRW(chan, tmpSpiData, 15);
+    digitalWrite(nCS,HIGH);
 
-    //y axis accel
-    tmpSpiDataH[0] =  readReg(MPUREG_ACCEL_YOUT_H );
-    tmpSpiDataL[0] =  readReg(MPUREG_ACCEL_YOUT_L );
-    buff[2] = tmpSpiDataH[0];
-    buff[3] = tmpSpiDataL[0];
+    buff[0] = tmpSpiData[1]; //acc_x_h
+    buff[1] = tmpSpiData[2];//acc_x_l
+    buff[2] = tmpSpiData[3];//acc_y_h
+    buff[3] = tmpSpiData[4];//acc_y_l
+    buff[4] = tmpSpiData[5];//acc_z_h
+    buff[5] = tmpSpiData[6];//acc_z_l
+    buff[6] = tmpSpiData[9];//gyro_x_h
+    buff[7] = tmpSpiData[10];//gyro_x_l
+    buff[8] = tmpSpiData[11];//gyro_y_h
+    buff[9] = tmpSpiData[12];//gyro_y_l
+    buff[10] = tmpSpiData[13];//gyro_z_h
+    buff[11] = tmpSpiData[14];//gyro_z_l
 
-    //z axis accel
-    tmpSpiDataH[0] =  readReg(MPUREG_ACCEL_ZOUT_H );
-    tmpSpiDataL[0] =  readReg(MPUREG_ACCEL_ZOUT_L );
-    buff[4] = tmpSpiDataH[0];
-    buff[5] = tmpSpiDataL[0];
-
-    //x axis rot
-    tmpSpiDataH[0] =  readReg(MPUREG_GYRO_XOUT_H );
-    tmpSpiDataL[0] =  readReg(MPUREG_GYRO_XOUT_L );
-    buff[6] = tmpSpiDataH[0];
-    buff[7] = tmpSpiDataL[0];
-
-    //y axis rot
-    tmpSpiDataH[0] =  readReg(MPUREG_GYRO_YOUT_H );
-    tmpSpiDataL[0] =  readReg(MPUREG_GYRO_YOUT_L );
-    buff[8] = tmpSpiDataH[0];
-    buff[9] = tmpSpiDataL[0];
-
-    //z axis rot
-    tmpSpiDataH[0] =  readReg(MPUREG_GYRO_ZOUT_H );
-    tmpSpiDataL[0] =  readReg(MPUREG_GYRO_ZOUT_L );
-    buff[10] = tmpSpiDataH[0];
-    buff[11] = tmpSpiDataL[0];
+    //qDebug() << tmpSpiData[1];
+    //qDebug() << buff[0];
 
     return (unsigned char*)&buff;
 }
@@ -104,7 +89,7 @@ void DaqMPU6000::sendCmd(uint8_t cmd)
 void DaqMPU6000::setup ()
 {
     //test
-    delay(1000);
+    //delay(10);
 
     uint8_t res;
     //serv->printWriteLog("Starting MPU6000 setup...") ;
@@ -140,13 +125,15 @@ void DaqMPU6000::setup ()
 
     //RESET CHIP
     qDebug() << "Reset Chip";
-    writeReg(MPUREG_USER_CTRL,BIT_I2C_IF_DIS);
     writeReg(MPUREG_PWR_MGMT_1,BIT_H_RESET);
     delay(150);
 
-    //WAKE UP AND SET GYROZ CLOCK
-    qDebug() << "Wake up and set gyroz clock";
-    writeReg(MPUREG_PWR_MGMT_1,0x00);
+    /* Enable and set the clock source */
+        writeReg(MPUREG_PWR_MGMT_1, ((MPU_CLK_SEL_PLLGYROX)<<0x00)|
+                                                ((MPU_6000_PWR_MGMT_1_NO_SLEEP)<<MPU_6000_PWR_MGMT_1_SLEEP_bp)|
+                                                ((MPU_6000_PWR_MGMT_1_NO_RST)<<MPU_6000_PWR_MGMT_1_RST_bp)|
+                                                ((MPU_6000_PWR_MGMT_1_TEMP_DISABLE)<<MPU_6000_PWR_MGMT_1_TEMP_bp));
+        delay(1);
 
     qDebug() << "WHOAMI?";
     delay(1000);
@@ -175,7 +162,7 @@ void DaqMPU6000::setup ()
     writeReg(MPUREG_CONFIG,0x00);
 
     // Gyro scale 1000º/s
-    writeReg(MPUREG_GYRO_CONFIG, BITS_FS_1000DPS);
+    writeReg(MPUREG_GYRO_CONFIG, BITS_FS_250DPS);
 
     // Accel scele 2g (g=8192)
     writeReg(MPUREG_ACCEL_CONFIG, BITS_FS_2G);
@@ -184,15 +171,9 @@ void DaqMPU6000::setup ()
     qDebug() << "Disable Interrupts";
     writeReg(MPUREG_INT_ENABLE,0x00);
 
-    // Read LPF reg
-    qDebug() << "LPF value:";
-    uint8_t lpf;
-    lpf = readReg(MPUREG_CONFIG);
-    qDebug() << QString::number(lpf);
-
-    //FIRST OF ALL DISABLE I2C
-    qDebug() << "Disable I2C";
-    writeReg(MPUREG_USER_CTRL,BIT_I2C_IF_DIS);
+    //DISABLE I2C
+    //qDebug() << "Disable I2C";
+    //writeReg(MPUREG_USER_CTRL,BIT_I2C_IF_DIS);
 
     qDebug() << "MPU6000 setup done.";
 }

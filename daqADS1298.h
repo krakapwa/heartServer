@@ -4,7 +4,7 @@
 #include <daq.h>
 
 //Global
-const int ADS1298_Nbytes = 6; //3 header bytes + 1 channel
+const int ADS1298_Nbytes = 9; //3 header bytes + 2 channel
 
 // register commands
 const uint8_t ADS1298_WREG = 0x40;

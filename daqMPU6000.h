@@ -65,6 +65,12 @@ const uint8_t MPUREG_WHOAMI = 0x75;
 
 // Configuration bits MPU6000
 const uint8_t BIT_SLEEP = 0x40;
+const uint8_t MPU_6000_PWR_MGMT_1_NO_SLEEP = 0x00;
+const uint8_t MPU_6000_PWR_MGMT_1_SLEEP_bp = 0x06;
+const uint8_t MPU_6000_PWR_MGMT_1_NO_RST = 0x00;
+const uint8_t MPU_6000_PWR_MGMT_1_RST_bp =	0x07;
+const uint8_t MPU_6000_PWR_MGMT_1_TEMP_DISABLE = 0x01;
+const uint8_t MPU_6000_PWR_MGMT_1_TEMP_bp =	0x03;
 const uint8_t BIT_H_RESET = 0x80;
 const uint8_t BITS_CLKSEL = 0x07;
 const uint8_t MPU_CLK_SEL_PLLGYROX = 0x01;
@@ -121,7 +127,7 @@ public:
     void setSclkPin(int);
     void setFsyncPin(int);
     void setDrdyPin(int);
-    uint8_t * getData();
+    int *getData();
     int getNbytes();
 
 signals:

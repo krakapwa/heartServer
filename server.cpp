@@ -195,7 +195,7 @@ Server::Server(QObject *parent)
 
     rdyLedOn(RDYLED);
 
-    delay(3000);
+    delay(1000);
     //emit daqStartSingleShot("lol.bin");
     startContinuous("lol.bin");
     delay(2000);
