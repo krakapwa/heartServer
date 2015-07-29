@@ -19,8 +19,8 @@ int DaqMPU6000::getNbytes(){
     return MPU6000_Nbytes;
 }
 
-static uint8_t buff[MPU6000_Nbytes];
-uint8_t* DaqMPU6000::getData(void){
+static std::vector<int32_t> buff(MPU6000_Nchannels);
+std::vector<int32_t> *DaqMPU6000::getData(void){
 
     //qDebug() << "getData MPU6000";
 
@@ -33,23 +33,14 @@ uint8_t* DaqMPU6000::getData(void){
     wiringPiSPIDataRW(chan, tmpSpiData, 15);
     digitalWrite(nCS,HIGH);
 
-    buff[0] = tmpSpiData[1]; //acc_x_h
-    buff[1] = tmpSpiData[2];//acc_x_l
-    buff[2] = tmpSpiData[3];//acc_y_h
-    buff[3] = tmpSpiData[4];//acc_y_l
-    buff[4] = tmpSpiData[5];//acc_z_h
-    buff[5] = tmpSpiData[6];//acc_z_l
-    buff[6] = tmpSpiData[9];//gyro_x_h
-    buff[7] = tmpSpiData[10];//gyro_x_l
-    buff[8] = tmpSpiData[11];//gyro_y_h
-    buff[9] = tmpSpiData[12];//gyro_y_l
-    buff[10] = tmpSpiData[13];//gyro_z_h
-    buff[11] = tmpSpiData[14];//gyro_z_l
+    buff[0] = (int32_t)(int16_t)((tmpSpiData[1] << 8) + tmpSpiData[2]); //acc_x_h
+    buff[1] = (int32_t)(int16_t)((tmpSpiData[3] << 8) + tmpSpiData[4]); //acc_x_h
+    buff[2] = (int32_t)(int16_t)((tmpSpiData[5] << 8) + tmpSpiData[6]); //acc_x_h
+    buff[3] = (int32_t)(int16_t)((tmpSpiData[9] << 8) + tmpSpiData[10]); //acc_x_h
+    buff[4] = (int32_t)(int16_t)((tmpSpiData[11] << 8) + tmpSpiData[12]); //acc_x_h
+    buff[5] = (int32_t)(int16_t)((tmpSpiData[13] << 8) + tmpSpiData[14]); //acc_x_h
 
-    //qDebug() << tmpSpiData[1];
-    //qDebug() << buff[0];
-
-    return (unsigned char*)&buff;
+    return &buff;
 }
 
 void DaqMPU6000::writeReg(uint8_t address, uint8_t data)
@@ -189,4 +180,8 @@ void DaqMPU6000::printRegs(){
         res = readReg((uint8_t)i);
         qDebug() << "Register: " + QString::number(i) + " = " + QString::number(res);
     }
+}
+
+int DaqMPU6000::getNchans(){
+   return MPU6000_Nchannels;
 }

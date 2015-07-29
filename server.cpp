@@ -53,6 +53,9 @@ Server::Server(QObject *parent)
     : QObject(parent)
 
 {
+    sendBtRatio = 4; // ratio of samples to send via bluetooth (downsampling)
+    sampleCount = 0;
+
     qDebug() <<  "Calling wiringPiSetupGpio()";
     wiringPiSetupGpio(); //init SPI pins
 
@@ -144,7 +147,6 @@ Server::Server(QObject *parent)
    serviceInfo.registerService(localAdapterAddress);
    //! [Register service]
 
-
    if(serviceInfo.isComplete())
        qDebug() << "Bluetooth service is complete";
 
@@ -159,51 +161,65 @@ Server::Server(QObject *parent)
              myDaqADS1298, SLOT(stopContinuous()));
     myDaqADS1298->setCfgFileName(rootPath + "configADS1298.txt"); //Acquisition triggered on ADS1298 DRDY
 
-    //Create MPU6000 daq objects and corresponding threads
-    DaqMPU6000* myDaqMPU6000 = new DaqMPU6000;
+    //Create MPU6000 #1
+    DaqMPU6000* myDaqMPU6000_1 = new DaqMPU6000;
     QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
-            myDaqMPU6000, SLOT(startContinuous(QString)));
+            myDaqMPU6000_1, SLOT(startContinuous(QString)));
     QObject::connect(this, SIGNAL(daqStopContinuous()),
-             myDaqMPU6000, SLOT(stopContinuous()));
+             myDaqMPU6000_1, SLOT(stopContinuous()));
     //myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
     //myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
-    myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
-    myDaqMPU6000->setNCsPin(7);
-    myDaqMPU6000->setMosiPin(myDaqADS1298->getMosiPin());
-    myDaqMPU6000->setMisoPin(myDaqADS1298->getMisoPin());
-    myDaqMPU6000->setFsyncPin(24);
-    myDaqMPU6000->setSclkPin(myDaqADS1298->getSclkPin());
-    myDaqMPU6000->setChan(1);
+    myDaqMPU6000_1->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
+    myDaqMPU6000_1->setNCsPin(7);
+    myDaqMPU6000_1->setMosiPin(myDaqADS1298->getMosiPin());
+    myDaqMPU6000_1->setMisoPin(myDaqADS1298->getMisoPin());
+    myDaqMPU6000_1->setSclkPin(myDaqADS1298->getSclkPin());
+    myDaqMPU6000_1->setChan(1);
+
+    //Create MPU6000 #2
+    DaqMPU6000* myDaqMPU6000_2 = new DaqMPU6000;
+    QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
+            myDaqMPU6000_2, SLOT(startContinuous(QString)));
+    QObject::connect(this, SIGNAL(daqStopContinuous()),
+             myDaqMPU6000_2, SLOT(stopContinuous()));
+    //myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
+    //myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
+    myDaqMPU6000_2->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
+    myDaqMPU6000_2->setNCsPin(20);
+    myDaqMPU6000_2->setMosiPin(myDaqADS1298->getMosiPin());
+    myDaqMPU6000_2->setMisoPin(myDaqADS1298->getMisoPin());
+    myDaqMPU6000_2->setSclkPin(myDaqADS1298->getSclkPin());
+    myDaqMPU6000_2->setChan(1);
 
     //Add to daq list
     daqs.append(myDaqADS1298);
-    daqs.append(myDaqMPU6000);
+    daqs.append(myDaqMPU6000_1);
+    daqs.append(myDaqMPU6000_2);
+
+    //init BT data output buffer
+    initBtBuffOut();
 
     //Setup daqs
     //qDebug() << "ADS1298 sampling freq: " + QString::number(daqs[0]->getFs());
     daqs[0]->setup();
     daqs[1]->setup();
+    daqs[2]->setup();
 
-    /*
-    digitalWrite(7,LOW);
-    delay(1000);
-    digitalWrite(7,HIGH);
-    */
 
     wiringPiISRargs(myDaqADS1298->getDrdyPin(), INT_EDGE_FALLING,  &Server::getData,this);
     pThisCallback = this;
 
     rdyLedOn(RDYLED);
 
+    /*
     delay(1000);
-    //emit daqStartSingleShot("lol.bin");
     startContinuous("lol.bin");
     delay(2000);
     stopContinuous();
     //quint8 test[27] = {0};
     //qDebug() << QString::number(sizeof(test));
+    */
 
-    sampleRatio = 4;
 
 }
 
@@ -217,6 +233,7 @@ void Server::startContinuous(QString fname){
 }
 
 void Server::stopContinuous(){
+    delay(10);
     emit daqStopContinuous();
     delay(10);
     qDebug() << "Closing file";
@@ -225,54 +242,45 @@ void Server::stopContinuous(){
 
 void Server::getData(void){
     Server * p = static_cast<Server *>(pThisCallback);
-    uint8_t * buff;
+    std::vector<int32_t>* buff;
+
     for(int i=0; i < p->daqs.size();++i){
-        //qDebug() << "getData";
         buff = p->daqs[i]->getData();
-        //qDebug() << "buff[0]=" + QString::number(buff[0]);
-        //qDebug() << "buff[1]=" + QString::number(buff[1]);
-        //qDebug() << "getData daq " + QString::number(i) + " " +QString::number(*buff) ;
-        p->myFile.write((char*)buff, p->daqs[i]->getNbytes()*sizeof(uint8_t));
-        //qDebug() << QString::number(p->daqs[i]->getNbytes()*sizeof(uint8_t));
+        p->myFile.write((char*)buff->data(), buff->size()*sizeof(int32_t));
+        if(p->sampleCount == p->sendBtRatio){
+            //qDebug() << "cat vectors";
+            p->buffBt.insert(p->buffBt.end(),buff->begin(),buff->end());
+        }
+    }
+    if(p->sampleCount == p->sendBtRatio){
+
+        p->sendData(&(p->buffBt));
+        p->sampleCount = 0;
+        p->buffBt.clear();
+
+    }
+    else{
+        p->sampleCount = p->sampleCount + 1;
+        //qDebug() << "p->sampleCount = " + QString::number(p->sampleCount);
     }
 }
 
+void Server::sendData(std::vector<int32_t>* data)
+{
+    std::stringstream outstream;
+    outstream << "AAAA";
+    for (std::vector<int32_t>::iterator it = data->begin(); it!=data->end(); ++it) {
+       outstream << std::to_string(*it) << ",";
 
-
-/*
-void Server::getData(void){
-
-    //int chan = daqs[0]
-    uint8_t tmp[27] = {0};
-    //    getWriteData(&(daqs[0]->myFile),8, 0, 27);
-    digitalWrite(8,LOW);
-    //delayMicroseconds(5);
-    wiringPiSPIDataRW(0, tmp ,27);
-    //delay(1);
-    digitalWrite(8,HIGH);
-
-
-    for( int i=0; i < 27; ++i ){
-       bufferADS1298[i] =  tmp[i];
+        //qDebug() << QString::fromUtf8(std::to_string(*it).c_str());
     }
+    outstream << '\n';
 
-    daqs[0]->myFile.write((char*)&bufferADS1298, 27*sizeof(uint8_t));
+    //qDebug() << QString::fromUtf8(outstream.str().c_str());
 
-
+    foreach (QBluetoothSocket *socket, clientSockets)
+        socket->write(outstream.str().c_str());
 }
-*/
-
-//uint8_t bufferMPU6000[27];
-/*
-void Server::getWriteData(std::ofstream* file,int ncsPin, int chan, int len){
-
-    digitalWrite(ncsPin,LOW);
-    wiringPiSPIDataRW(chan, bufferADS1298 ,len);
-    digitalWrite(ncsPin,HIGH);
-
-    file->write((char*)&bufferADS1298, len*sizeof(uint8_t));
-}
-*/
 
 Server::~Server()
 {
@@ -305,16 +313,12 @@ void Server::clientConnected()
     connect(socket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
     clientSockets.append(socket);
     QString msg;
-    //msg ="Accepted connection. Status: ";
+    msg ="Accepted connection. Status: ";
     if(started)
         msg = msg + "Running.";
     else msg = msg + "Waiting.";
 
-    quint8 data[27] = {0};
-    for(int i = 0; i<27;++i){
-        data[i] = i;
-    }
-    sendData(data,27);
+    sendMessage(msg);
 
 }
 
@@ -353,13 +357,23 @@ void Server::readSocket()
 
 void Server::sendMessage(const QString &message)
 {
-    qDebug() << "sending " + message;
+    std::stringstream outstream;
+    outstream << "BBBB";
+    outstream << message.toStdString();
+    outstream << '\n';
+
+    foreach (QBluetoothSocket *socket, clientSockets)
+        socket->write(outstream.str().c_str());
+
+    /*
+    //qDebug() << "sending " + message;
     QByteArray text;
     text +=QByteArray::fromHex("BBBB");
     text += message.toUtf8() + '\n';
     qDebug() << "sending(hex) " + text.toHex();
     foreach (QBluetoothSocket *socket, clientSockets)
         socket->write(text);
+        */
 }
 
 struct packOut
@@ -368,29 +382,6 @@ struct packOut
    char  data[sizeof(uint8_t)*27];
 };
 
-void Server::sendData(quint8 data[], int len)
-{
-
-    if(sampleCount < 4) {
-        datastream->device()->seek(0);
-        type = QByteArray::fromHex("AAAA");
-        datastream->setVersion(QDataStream::Qt_5_3);
-        datastream->writeRawData(type,2);
-
-        for(int i = 0; i<len;++i){
-        *datastream << data[i];
-        }
-        *datastream << '\n';
-
-        //qDebug() << QString::number(byteArrayIn.size());
-        foreach (QBluetoothSocket *socket, clientSockets)
-        socket->write(byteArrayIn);
-        sampleCount++;
-    }
-    else{
-        sampleCount = 0;
-    }
-}
 
 void Server::processMessage(const QString& msg)
 {
@@ -455,4 +446,15 @@ void Server::rdyLedOn(int pin){
 
 void Server::rdyLedOff(int pin){
     digitalWrite(pin,LOW);
+}
+
+
+void Server::initBtBuffOut(){
+    int totalChans = 0;
+   for(int i=0; i<daqs.size();++i){
+       totalChans +=daqs[i]->getNchans();
+   }
+   qDebug() << "Total channels in output BT buffer:" + QString::number(totalChans);
+   buffBt.reserve(totalChans);
+
 }

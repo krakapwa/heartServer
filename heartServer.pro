@@ -25,8 +25,9 @@ HEADERS = \
     dataADS1298.h \
     dataMPU6000.h
 
+MATLABROOT=/home/krakapwa/bin/MATLAB/R2011b
 INCLUDEPATH += /usr/include
-LIBS = -I/usr/local/include -L/usr/local/lib -lwiringPi -L/mnt/rasp-pi-rootfs/usr/lib -lconfig
+LIBS += -I/usr/local/include -L/usr/local/lib -lwiringPi -L/mnt/rasp-pi-rootfs/usr/lib -lconfig
 
 target.path = /home/pi/heartServer
 

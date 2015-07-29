@@ -5,6 +5,7 @@
 
 //Global
 const int ADS1298_Nbytes = 9; //3 header bytes + 2 channel
+const int ADS1298_Nchannels = 3;
 
 // register commands
 const uint8_t ADS1298_WREG = 0x40;
@@ -38,9 +39,10 @@ public:
     int getMosiPin();
     int getSclkPin();
     int getFclk(void);
-    uint8_t *getData();
+    std::vector<int> *getData();
     void setFsFromCfg();
     int getNbytes();
+    int getNchans();
 
 signals:
     void sendBuffer(DataADS1298);
@@ -55,6 +57,7 @@ private:
     std::string cfgFileName;
     void writeReg(uint8_t address, uint8_t data);
     void sendCmd(uint8_t cmd);
+    int32_t uint32Toint32(uint32_t in);
     uint8_t readReg(uint8_t address);
     void writeToBuffer(DataADS1298*);
     void printRegs();

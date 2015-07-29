@@ -279,9 +279,8 @@ void DaqADS1298::setFsFromCfg(){
 
 }
 
-
-    static uint8_t bufferADS1298[ADS1298_Nbytes];
-uint8_t* DaqADS1298::getData(){
+static std::vector<int32_t> bufferADS1298(ADS1298_Nchannels);
+std::vector<int>* DaqADS1298::getData(){
     //qDebug() << "getData ADS1298";
     //int chan = daqs[0]
     uint8_t tmp[ADS1298_Nbytes] = {0};
@@ -290,16 +289,22 @@ uint8_t* DaqADS1298::getData(){
     wiringPiSPIDataRW(ADS1298_chan, tmp ,ADS1298_Nbytes);
     digitalWrite(ADS1298_nCS,HIGH);
 
-
-    for( int i=0; i < ADS1298_Nbytes; ++i ){
-       bufferADS1298[i] =  tmp[i];
+    // 3 bytes per channel
+    for( int i=0; i < ADS1298_Nbytes/3; ++i ){
+       bufferADS1298[i] =  uint32Toint32((tmp[3*i]<<16) + (tmp[3*i+1]<<8) + (tmp[3*i+2]));
     }
 
-    return (unsigned char*)&bufferADS1298;
+    return &bufferADS1298;
+}
 
-    //qDebug() << QString::number(bufferADS1298.size());
-    //qDebug() << QString::number(tmp[20]);
-            //daqs[0]->myFile.write((char*)&bufferADS1298, ADS1298_Nbytes*sizeof(quint8));
-    //bufferADS1298ar = QByteArray::fromRawData((char*)bufferADS1298,27*sizeof(qint8));
-    //sendData(bufferADS1298,ADS1298_Nbytes);
+int32_t DaqADS1298::uint32Toint32(uint32_t in){
+    if(in & 0x800000){
+        in |= ~0xffffff;
+    }
+
+    return (int32_t)in;
+}
+
+int DaqADS1298::getNchans(){
+   return ADS1298_Nchannels;
 }

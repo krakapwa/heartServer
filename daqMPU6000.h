@@ -5,6 +5,7 @@
 #include <dataMPU6000.h>
 
 const int MPU6000_Nbytes = 12;
+const int MPU6000_Nchannels = 6;
 
 // register commands
 const uint8_t MPUREG_XG_OFFS_TC = 0x00;
@@ -127,8 +128,9 @@ public:
     void setSclkPin(int);
     void setFsyncPin(int);
     void setDrdyPin(int);
-    int *getData();
+    std::vector<int32_t> *getData();
     int getNbytes();
+    int getNchans();
 
 signals:
     void sendMessageServer(QString);

@@ -25,11 +25,12 @@ public:
     Daq(QObject *parent = 0);
     ~Daq();
     virtual void setup()=0;
-    virtual uint8_t * getData()=0;
+    virtual std::vector<int32_t>* getData()=0;
     void setCfgFileName(QString);
     int getChan();
     int getFs();
     virtual int getNbytes() = 0;
+    virtual int getNchans() = 0;
 
 protected:
     int chan;

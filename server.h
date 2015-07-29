@@ -59,6 +59,7 @@
 #include <QString>
 #include <QDataStream>
 #include "daq.h"
+#include <sstream>
 
 QT_USE_NAMESPACE
 
@@ -88,12 +89,13 @@ private:
     void rdyLedOn(int pin);
     void rdyLedOff(int pin);
     void sendMessage(const QString &message);
-    void sendData(quint8[], int len);
+    void sendData(std::vector<int32_t> *);
     void showMessage(const QString &sender, const QString &message);
     void connected(const QString &name);
     //static void getData();
     static void getData();
     static void getWriteData(std::ofstream *, int, int, int);
+    std::vector<int32_t> buffBt;
 
     void startServer();
     void restartServer();
@@ -102,6 +104,7 @@ private:
 
     void startContinuous(QString);
     void stopContinuous();
+    void initBtBuffOut();
 
     int clientSocket;
     int secsTimeout;
@@ -123,6 +126,7 @@ private:
     QString fName;
     bool gotTime;
     bool started;
+    uint8_t * btDataOut;
 
     QList<QBluetoothSocket *> clientSockets;
 
@@ -130,7 +134,7 @@ private:
     QByteArray byteArrayIn;
     QDataStream* datastream;
     int sampleCount; //keeps track of sent samples for downsampling
-    int sampleRatio; //Ratio of acquired data samples to send
+    int sendBtRatio; //Ratio of acquired data samples to send
 
     quint8 bufferADS1298[27];
     QByteArray bufferADS1298ar;
@@ -156,7 +160,5 @@ signals:
 
 };
 //! [declaration]
-
-//const int bufsize = 1024;
 
 #endif
