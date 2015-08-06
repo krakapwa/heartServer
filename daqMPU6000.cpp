@@ -12,6 +12,7 @@ void DaqMPU6000::setFsyncPin(int fsync){FSYNC = fsync;}
 DaqMPU6000::DaqMPU6000(){
     qDebug() << "MPU6000 contructor";
     y = new DataMPU6000();
+    isPlugged = false;
 }
 
 
@@ -88,6 +89,9 @@ void DaqMPU6000::setup ()
     qDebug() << "chan: " + QString::number(chan);
     qDebug() << "fclk: " + QString::number(fclk);
 
+    pinMode(nCS, OUTPUT); //_RESET
+    digitalWrite(nCS,HIGH);
+
     int fd;
     fd=wiringPiSPISetup(chan, fclk); //init SPI pins
     qDebug() << "wiringPiSPISetup on chan " + QString::number(chan) +  ": " + QString::number(fd);
@@ -127,22 +131,18 @@ void DaqMPU6000::setup ()
         delay(1);
 
     qDebug() << "WHOAMI?";
-    delay(1000);
-    for(int i=0;i<1;++i){
-      delay(1);
+    delay(10);
         //WHO AM I?
         res = readReg(MPUREG_WHOAMI);
         if(res<100){
         qDebug() << "Couldn't receive whoami: " + QString::number(res);
-        //return;
+        isPlugged = false;
         }
         else{
         qDebug() << "whoami result: " + QString::number(res);
+        isPlugged = true;
         //qDebug() << "Received whoami";
         }
-    }
-    //delay(1000);
-
     //SET SAMPLE RATE TO 1kHz
     qDebug() << "Set sample rate";
     writeReg(MPUREG_SMPLRT_DIV,0x07);

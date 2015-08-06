@@ -131,6 +131,7 @@ public:
     std::vector<int32_t> *getData();
     int getNbytes();
     int getNchans();
+    bool isPlugged;
 
 signals:
     void sendMessageServer(QString);

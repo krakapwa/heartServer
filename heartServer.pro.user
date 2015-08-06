@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 3.3.1, 2015-07-28T14:14:09. -->
+<!-- Written by QtCreator 3.4.2, 2015-08-06T08:31:36. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -76,6 +76,7 @@
       <value type="bool" key="QtProjectManager.QMakeBuildStep.LinkQmlDebuggingLibraryAuto">true</value>
       <value type="QString" key="QtProjectManager.QMakeBuildStep.QMakeArguments"></value>
       <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">false</value>
+      <value type="bool" key="QtProjectManager.QMakeBuildStep.SeparateDebugInfo">false</value>
       <value type="bool" key="QtProjectManager.QMakeBuildStep.UseQtQuickCompiler">false</value>
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
@@ -136,6 +137,7 @@
       <value type="bool" key="QtProjectManager.QMakeBuildStep.LinkQmlDebuggingLibraryAuto">true</value>
       <value type="QString" key="QtProjectManager.QMakeBuildStep.QMakeArguments"></value>
       <value type="bool" key="QtProjectManager.QMakeBuildStep.QMakeForced">false</value>
+      <value type="bool" key="QtProjectManager.QMakeBuildStep.SeparateDebugInfo">false</value>
       <value type="bool" key="QtProjectManager.QMakeBuildStep.UseQtQuickCompiler">false</value>
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.1">
@@ -206,10 +208,10 @@
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName"></value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">RemoteLinux.DirectUploadStep</value>
       <valuelist type="QVariantList" key="Qt4ProjectManager.MaemoRunConfiguration.LastDeployedFiles">
+       <value type="QString">/home/krakapwa/Documents/rpi/heartServer/config/configADS1298.txt</value>
        <value type="QString">/home/krakapwa/Documents/rpi/heartServer/syncUsb</value>
        <value type="QString">/home/krakapwa/Documents/rpi/build-heartServer-rpiarch-Debug/heartServer</value>
        <value type="QString">/home/krakapwa/Documents/rpi/heartServer/config/configADS1298.txt.bcgecg</value>
-       <value type="QString">/home/krakapwa/Documents/rpi/heartServer/config/configADS1298.txt</value>
        <value type="QString">/home/krakapwa/Documents/rpi/heartServer/exportPins</value>
       </valuelist>
       <valuelist type="QVariantList" key="Qt4ProjectManager.MaemoRunConfiguration.LastDeployedHosts">
@@ -234,14 +236,14 @@
        <value type="QString">/mnt/rasp-pi-rootfs</value>
       </valuelist>
       <valuelist type="QVariantList" key="Qt4ProjectManager.MaemoRunConfiguration.LastDeployedTimes">
-       <value type="QDateTime">2015-07-27T08:36:42</value>
-       <value type="QDateTime">2015-07-28T13:18:14</value>
-       <value type="QDateTime">2015-07-27T08:36:41</value>
-       <value type="QDateTime">2015-07-27T08:36:41</value>
-       <value type="QDateTime">2015-07-27T08:36:42</value>
+       <value type="QDateTime">2015-08-06T08:31:33</value>
+       <value type="QDateTime">2015-08-06T08:31:33</value>
+       <value type="QDateTime">2015-08-06T08:31:34</value>
+       <value type="QDateTime">2015-08-06T08:31:33</value>
+       <value type="QDateTime">2015-08-06T08:31:33</value>
       </valuelist>
       <value type="bool" key="RemoteLinux.GenericDirectUploadStep.IgnoreMissingFiles">false</value>
-      <value type="bool" key="RemoteLinux.GenericDirectUploadStep.Incremental">true</value>
+      <value type="bool" key="RemoteLinux.GenericDirectUploadStep.Incremental">false</value>
      </valuemap>
      <value type="int" key="ProjectExplorer.BuildStepList.StepsCount">2</value>
      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Deploy</value>

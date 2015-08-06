@@ -87,7 +87,7 @@ Server::Server(QObject *parent)
    bool result = rfcommServer->listen(localAdapterAddress);
    if (!result) {
        qDebug() << "Cannot bind chat server to" << localAdapterAddress.toString();
-       return;
+       //return;
    }
    else{
 
@@ -165,8 +165,8 @@ Server::Server(QObject *parent)
     DaqMPU6000* myDaqMPU6000_1 = new DaqMPU6000;
     QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
             myDaqMPU6000_1, SLOT(startContinuous(QString)));
-    QObject::connect(this, SIGNAL(daqStopContinuous()),
-             myDaqMPU6000_1, SLOT(stopContinuous()));
+    //QObject::connect(this, SIGNAL(daqStopContinuous()),
+             //myDaqMPU6000_1, SLOT(stopContinuous()));
     //myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
     //myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
     myDaqMPU6000_1->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
@@ -178,10 +178,10 @@ Server::Server(QObject *parent)
 
     //Create MPU6000 #2
     DaqMPU6000* myDaqMPU6000_2 = new DaqMPU6000;
-    QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
-            myDaqMPU6000_2, SLOT(startContinuous(QString)));
-    QObject::connect(this, SIGNAL(daqStopContinuous()),
-             myDaqMPU6000_2, SLOT(stopContinuous()));
+    //QObject::connect(this, SIGNAL(daqStartContinuous(QString)),
+    //        myDaqMPU6000_2, SLOT(startContinuous(QString)));
+    //QObject::connect(this, SIGNAL(daqStopContinuous()),
+    //         myDaqMPU6000_2, SLOT(stopContinuous()));
     //myDaqMPU6000->setCfgFileName("configMPU6000.txt"); //Acquisition triggered on ADS1298 DRDY
     //myDaqMPU6000->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
     myDaqMPU6000_2->setFclk(1000000); //Acquisition triggered on ADS1298 DRDY
@@ -235,7 +235,8 @@ void Server::startContinuous(QString fname){
 void Server::stopContinuous(){
     delay(10);
     emit daqStopContinuous();
-    delay(10);
+
+    delay(1000);
     qDebug() << "Closing file";
     myFile.close();
 }
@@ -269,6 +270,7 @@ void Server::sendData(std::vector<int32_t>* data)
 {
     std::stringstream outstream;
     outstream << "AAAA";
+
     for (std::vector<int32_t>::iterator it = data->begin(); it!=data->end(); ++it) {
        outstream << std::to_string(*it) << ",";
 
@@ -406,7 +408,8 @@ void Server::processMessage(const QString& msg)
             qDebug() << "will stop";
             QString msg = "Stopping acquisition";
             sendMessage(msg);
-            emit daqStopContinuous();
+            //emit daqStopContinuous();
+            stopContinuous();
             started = false;
             return;
         }
